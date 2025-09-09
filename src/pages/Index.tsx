@@ -1,12 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Header } from "@/components/Header";
+import { HeroSection } from "@/components/HeroSection";
+import { MarketTicker } from "@/components/MarketTicker";
+import { AnalyticsSnapshot } from "@/components/AnalyticsSnapshot";
+import { ROICalculator } from "@/components/ROICalculator";
+import { FeaturedProperties } from "@/components/FeaturedProperties";
+import { WhyTerraNexxus } from "@/components/WhyTerraNexxus";
+import { HowItWorks } from "@/components/HowItWorks";
+import { GrowthStory } from "@/components/GrowthStory";
+import { Testimonials } from "@/components/Testimonials";
+import { ResourcesPreview } from "@/components/ResourcesPreview";
+import { CTABanner } from "@/components/CTABanner";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <MarketTicker />
+      <main className="relative">
+        <HeroSection />
+        <AnalyticsSnapshot />
+        <ROICalculator />
+        <FeaturedProperties />
+        <WhyTerraNexxus />
+        <HowItWorks />
+        <GrowthStory />
+        <Testimonials />
+        <ResourcesPreview />
+        <CTABanner />
+      </main>
+      <Footer />
     </div>
   );
 };

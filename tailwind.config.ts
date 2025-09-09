@@ -22,10 +22,14 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
+          light: "hsl(var(--primary-light))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+          dark: "hsl(var(--secondary-dark))",
+          "dark-foreground": "hsl(var(--secondary-dark-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -34,10 +38,14 @@ export default {
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
+          dark: "hsl(var(--muted-dark))",
+          "dark-foreground": "hsl(var(--muted-dark-foreground))",
         },
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          hover: "hsl(var(--accent-hover))",
+          light: "hsl(var(--accent-light))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -46,22 +54,27 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+          premium: "hsl(var(--card-premium))",
+          "premium-foreground": "hsl(var(--card-premium-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
         },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        "border-dark": "hsl(var(--border-dark))",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "var(--radius-xl)",
+      },
+      boxShadow: {
+        premium: "var(--shadow-premium)",
       },
       keyframes: {
         "accordion-down": {
