@@ -21,7 +21,12 @@ export const ClosingCTA = () => {
     <section className="relative py-20 overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary via-accent to-primary">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="7" cy="7" r="7"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] animate-pulse"></div>
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-4 h-4 bg-white rounded-full animate-pulse"></div>
+          <div className="absolute top-20 right-20 w-6 h-6 bg-white/50 rounded-full animate-bounce"></div>
+          <div className="absolute bottom-20 left-20 w-3 h-3 bg-white/30 rounded-full animate-ping"></div>
+          <div className="absolute bottom-40 right-40 w-5 h-5 bg-white/40 rounded-full animate-pulse delay-1000"></div>
+        </div>
       </div>
 
       <div className="relative container mx-auto px-4">
