@@ -108,14 +108,7 @@ export const HowItWorksAbout = () => {
                     </CardContent>
                   </Card>
                   
-                  {/* Arrow Connector */}
-                  {index < steps.length - 1 && (
-                    <div className="absolute top-20 -right-2 z-20">
-                      <div className="w-4 h-4 bg-background border border-primary rounded-full flex items-center justify-center">
-                        <ArrowRight className="h-2 w-2 text-primary" />
-                      </div>
-                    </div>
-                  )}
+                
                 </div>
               ))}
             </div>

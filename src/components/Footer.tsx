@@ -115,14 +115,14 @@ export const Footer = () => {
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-accent" />
-                <span className="text-sm">Bengaluru, Karnataka, India</span>
+                <span className="text-sm">Ahmedabad, Gujarat, India</span>
               </div>
             </div>
 
             {/* Social Links */}
             <div className="flex gap-3">
               {socialLinks.map((social) => (
-                <Button key={social.name} variant="outline" size="icon" className="border-border-dark hover:bg-accent hover:text-accent-foreground">
+                <Button key={social.name} variant="outline" size="icon" className="border-border-dark hover:bg-accent text-black hover:text-accent-foreground">
                   <social.icon className="h-4 w-4" />
                 </Button>
               ))}
@@ -201,7 +201,7 @@ export const Footer = () => {
 
       {/* Risk Disclaimer */}
       <div className="border-t border-border-dark bg-card-premium/50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-8 pb-14">
           <div className="max-w-4xl mx-auto">
             <h5 className="font-semibold mb-3 text-warning">Risk Disclaimer</h5>
             <p className="text-sm text-card-premium-foreground/70 leading-relaxed mb-4">

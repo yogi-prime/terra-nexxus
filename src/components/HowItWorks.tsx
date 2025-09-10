@@ -98,12 +98,8 @@ export const HowItWorks = () => {
                     </CardContent>
                   </Card>
                   
-                  {/* Arrow between steps */}
-                  {index < steps.length - 1 && (
-                    <div className="absolute top-20 -right-2 z-20">
-                      <ArrowRight className="h-6 w-6 text-primary" />
-                    </div>
-                  )}
+                 
+                  
                 </div>
               ))}
             </div>

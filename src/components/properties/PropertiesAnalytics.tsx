@@ -72,23 +72,51 @@ export const PropertiesAnalytics = ({ properties }: PropertiesAnalyticsProps) =>
   return (
     <div className="mb-8">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {kpiCards.map((kpi, index) => (
-          <div
-            key={index}
-            className="bg-card-premium border border-accent/20 rounded-xl p-4 hover:border-accent/40 transition-all duration-300"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <kpi.icon className="h-5 w-5 text-accent" />
-              <span className="text-xs text-success font-medium">{kpi.change}</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground mb-1">
-              {kpi.value}
-            </div>
-            <p className="text-sm text-muted-foreground">{kpi.title}</p>
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  {kpiCards.map((kpi, index) => (
+    <div key={index} className="rounded-2xl bg-[#0A1A16] p-[1px]">
+      <div
+        className="
+          relative overflow-hidden rounded-2xl p-5
+          bg-[linear-gradient(135deg,#0F2520_0%,#143229_55%,rgba(31,122,90,0.22)_100%)]
+          backdrop-blur-md
+          shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
+          transition-all duration-300
+          hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(31,122,90,0.22)]
+        "
+      >
+        {/* subtle corner glow like hero */}
+        <div className="pointer-events-none absolute -bottom-10 -right-10 w-28 h-28 rounded-full bg-[radial-gradient(closest-side,#F4C84A33,#F4C84A00)]" />
+
+        <div className="flex items-center justify-between mb-4">
+          {/* icon pill */}
+          <div className="p-2 rounded-lg bg-[linear-gradient(135deg,rgba(31,122,90,.18),rgba(244,200,74,.18))] text-[#F4C84A]">
+            <kpi.icon className="h-5 w-5" />
           </div>
-        ))}
+          {/* change chip */}
+          <span
+            className={`text-[11px] font-medium px-2 py-0.5 rounded-full
+              ${kpi.change.startsWith('-')
+                ? 'bg-red-500/15 text-red-400'
+                : 'bg-emerald-500/15 text-emerald-300'
+              }`}
+          >
+            {kpi.change}
+          </span>
+        </div>
+
+        {/* value in subtle gradient like hero */}
+        <div className="text-2xl font-semibold bg-clip-text text-transparent bg-[linear-gradient(90deg,#FFE08C,#F4C84A)]">
+          {kpi.value}
+        </div>
+        <p className="text-sm text-white/70">{kpi.title}</p>
       </div>
+    </div>
+  ))}
+</div>
+
+
+
 
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">

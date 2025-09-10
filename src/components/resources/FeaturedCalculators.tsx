@@ -312,26 +312,40 @@ export const FeaturedCalculators = () => {
         </div>
 
         {/* Calculator Tabs */}
-        <div className="mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {calculators.map((calc, index) => (
-              <Button
-                key={calc.id}
-                variant={activeCalculator === calc.id ? "default" : "outline"}
-                className={`h-auto p-4 flex flex-col items-center gap-2 ${
-                  activeCalculator === calc.id ? "" : "hover:bg-secondary/50"
-                }`}
-                onClick={() => setActiveCalculator(calc.id)}
-              >
-                <calc.icon className={`h-6 w-6 ${activeCalculator === calc.id ? "text-primary-foreground" : calc.color}`} />
-                <div className="text-center">
-                  <div className="font-semibold text-xs">{calc.title}</div>
-                  <div className="text-xs opacity-75 line-clamp-2">{calc.description}</div>
-                </div>
-              </Button>
-            ))}
+  <div className="mb-8">
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    {calculators.map((calc) => (
+      <Button
+        key={calc.id}
+        variant={activeCalculator === calc.id ? "default" : "outline"}
+        className={`h-32 w-full flex flex-col items-center justify-start p-3 rounded-lg ${
+          activeCalculator === calc.id ? "" : "hover:bg-secondary/50"
+        }`}
+        onClick={() => setActiveCalculator(calc.id)}
+      >
+        {/* Icon */}
+        <calc.icon
+          className={`h-6 w-6 mb-2 ${
+            activeCalculator === calc.id ? "text-primary-foreground" : calc.color
+          }`}
+        />
+
+        {/* Text container (force wrapping & fixed width) */}
+        <div className="text-center w-full max-w-[11rem]">
+          <div className="font-semibold text-xs leading-snug whitespace-normal break-words">
+            {calc.title}
+          </div>
+
+          {/* 2-line wrap with ellipsis; remove line-clamp-2 if unlimited lines chahiye */}
+          <div className="text-[11px] opacity-75 leading-tight whitespace-normal break-words line-clamp-2 min-h-10 mt-1">
+            {calc.description}
           </div>
         </div>
+      </Button>
+    ))}
+  </div>
+</div>
+
 
         {/* Active Calculator */}
         <Card className="border-0 shadow-lg">

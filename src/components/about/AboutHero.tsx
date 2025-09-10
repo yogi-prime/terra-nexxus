@@ -52,25 +52,52 @@ export const AboutHero = () => {
       </div>
 
       {/* Stats Ticker */}
-      <div className="relative bg-card-premium/50 backdrop-blur-sm border-y border-border-dark">
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center group">
-                <div className="flex items-center justify-center mb-2">
-                  <stat.icon className={`h-6 w-6 ${stat.color} group-hover:scale-110 transition-transform`} />
-                </div>
-                <div className="text-2xl md:text-3xl font-bold text-foreground mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+{/* Stats Ticker (Hero-style glass band) */}
+<div className="relative overflow-hidden">
+  {/* Deep teal gradient base */}
+  <div className="absolute inset-0 bg-[linear-gradient(135deg,#0F2520_0%,#143229_60%,rgba(31,122,90,0.22)_100%)]" />
+
+  {/* Soft glows like hero */}
+  <div className="pointer-events-none absolute inset-0 opacity-25
+                  bg-[radial-gradient(600px_220px_at_20%_-10%,#F4C84A33,transparent),
+                      radial-gradient(520px_200px_at_85%_110%,#43B88333,transparent)]" />
+
+  {/* Hairlines for premium feel */}
+  <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+  <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
+
+  <div className="relative container mx-auto px-4 py-8">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {[
+        { icon: Target,  label: "Total Raised",         value: "₹1,200+ Cr" },
+        { icon: Users,   label: "Investors Onboarded",  value: "15,000+"    },
+        { icon: Building,label: "Properties Funded",    value: "45+"        },
+        { icon: TrendingUp, label: "Average Yield",     value: "12.5%"      },
+      ].map((stat, i) => (
+        <div key={i} className="text-center group">
+          {/* Icon pill */}
+          <div className="mx-auto mb-2 inline-flex items-center justify-center 
+                          h-9 w-9 rounded-xl
+                          bg-[linear-gradient(135deg,rgba(31,122,90,.22),rgba(244,200,74,.22))]
+                          text-[#F4C84A] group-hover:scale-105 transition-transform">
+            <stat.icon className="h-5 w-5" />
           </div>
+
+          {/* Value with gold gradient like hero */}
+          <div className="text-2xl md:text-3xl font-bold
+                          bg-clip-text text-transparent
+                          bg-[linear-gradient(90deg,#FFE08C,#F4C84A)]">
+            {stat.value}
+          </div>
+
+          {/* Label in soft foreground */}
+          <div className="text-sm text-white/70">{stat.label}</div>
         </div>
-      </div>
+      ))}
+    </div>
+  </div>
+</div>
+
     </section>
   );
 };

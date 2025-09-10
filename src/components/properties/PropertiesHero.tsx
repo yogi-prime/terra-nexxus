@@ -1,4 +1,6 @@
+// src/sections/PropertiesHero.tsx
 import { TrendingUp, Building2, Users, Target } from "lucide-react";
+import heroBackground from "@/assets/hero-background.jpg";
 
 export const PropertiesHero = () => {
   const stats = [
@@ -9,35 +11,61 @@ export const PropertiesHero = () => {
   ];
 
   return (
-    <section className="bg-gradient-to-br from-card via-card-premium to-card py-16">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
-            Browse Properties.{" "}
-            <span className="gradient-text">Own Fraction by Fraction.</span>
+    <section className="relative overflow-hidden">
+      {/* BG + overlays = same recipe as Home */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${heroBackground})` }}
+      >
+        {/* left-to-right green veil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-card-premium/95 via-card-premium/85 to-transparent" />
+        {/* soft radial glows (reuse your util) */}
+        <div className="absolute inset-0 gradient-hero opacity-20" />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-16 md:py-24">
+        {/* Heading */}
+        <div className="text-center mb-10 md:mb-14">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+            <span className="text-card-premium-foreground">Browse Properties.</span>{" "}
+            <span className="gradient-data bg-clip-text text-transparent">
+              Own Fraction by Fraction.
+            </span>
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-4xl mx-auto">
-            Discover Residential, Commercial, Farmhouses, Agri Land, Plots & Industrial assets 
-            starting from ₹10,000.
+          <p className="text-lg md:text-xl text-card-premium-foreground/80 max-w-4xl mx-auto">
+            Discover Residential, Commercial, Farmhouses, Agri Land, Plots & Industrial assets
+            starting from <span className="text-accent font-semibold">₹10,000</span>.
           </p>
         </div>
 
+        {/* Stats — same card treatment as Home */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
+          {stats.map(({ label, value, icon: Icon }, i) => (
             <div
-              key={index}
-              className="bg-card-premium border border-accent/20 rounded-xl p-6 text-center hover:border-accent/40 transition-all duration-300 hover:shadow-premium"
+              key={i}
+              className="bg-card-premium/60 backdrop-blur-sm border border-border-dark/50 rounded-xl p-5 hover-glow transition-all"
             >
-              <div className="flex justify-center mb-4">
-                <stat.icon className="h-8 w-8 text-accent" />
+              <div className="flex justify-center mb-3">
+                <Icon className="h-8 w-8 text-accent" />
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                {stat.value}
+              <div className="text-2xl md:text-3xl font-bold text-accent text-center mb-1">
+                {value}
               </div>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
+              <p className="text-sm text-card-premium-foreground/70 text-center">{label}</p>
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Floating accents (optional to mirror Home) */}
+      <div className="pointer-events-none absolute top-1/4 right-10 animate-float">
+        <div className="w-16 h-16 gradient-primary rounded-full opacity-20" />
+      </div>
+      <div
+        className="pointer-events-none absolute bottom-1/4 left-10 animate-float"
+        style={{ animationDelay: "1s" }}
+      >
+        <div className="w-12 h-12 gradient-accent rounded-full opacity-20" />
       </div>
     </section>
   );

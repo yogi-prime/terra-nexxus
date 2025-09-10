@@ -41,7 +41,7 @@ export const PropertiesCTA = () => {
             <Button 
               variant="outline" 
               size="lg"
-              className="border-white/30 text-white hover:bg-white/10 hover:border-white/50"
+              className="border-white/30 text-primary  hover:bg-white/10 hover:border-white/50"
             >
               <Building2 className="h-5 w-5 mr-2" />
               Browse All Categories

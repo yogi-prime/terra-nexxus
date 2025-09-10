@@ -91,7 +91,7 @@ export const CTABanner = () => {
               <Button 
                 variant="outline" 
                 size="xl" 
-                className="text-lg px-8 py-4 h-auto border-white/30 text-white hover:bg-white/10 hover:text-white"
+                className="text-lg px-8 py-4 h-auto border-white/30 text-black hover:bg-white/10 hover:text-white"
               >
                 Browse Properties
               </Button>

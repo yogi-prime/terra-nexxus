@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import terraLogo from "../assets/terra_logo.png";
+import { Link } from "react-router-dom";
+
 import { 
   Menu, 
   X, 
@@ -64,13 +67,13 @@ export const Header = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="gradient-primary w-10 h-10 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">TN</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Terra Nexxus</h1>
-                <p className="text-xs text-muted-foreground">Fractional Real Estate</p>
-              </div>
+               <Link to="/">
+    <img
+      src={terraLogo}
+      alt="Terra Nexxus Logo"
+      className="w-auto h-10 object-contain cursor-pointer"
+    />
+  </Link>
             </div>
 
             {/* Desktop Navigation */}
@@ -93,7 +96,7 @@ export const Header = () => {
               </Button>
               <Button variant="hero" size="sm" onClick={() => navigate("/register")}>
                 Start KYC
-                <Badge variant="secondary" className="ml-2 bg-accent/20 text-accent-foreground">
+                <Badge variant="secondary" className="ml-2 bg-accent/100 text-accent-foreground">
                   Fast Track
                 </Badge>
               </Button>
