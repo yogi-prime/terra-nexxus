@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -26,6 +27,7 @@ const quickLinks = [
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -74,22 +76,22 @@ export const Header = () => {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               {navItems.map((item) => (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
+                  onClick={() => navigate(item.href)}
                   className="text-foreground hover:text-primary transition-colors font-medium"
                 >
                   {item.name}
-                </a>
+                </button>
               ))}
             </nav>
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
                 Login
               </Button>
-              <Button variant="hero" size="sm">
+              <Button variant="hero" size="sm" onClick={() => navigate("/register")}>
                 Start KYC
                 <Badge variant="secondary" className="ml-2 bg-accent/20 text-accent-foreground">
                   Fast Track
@@ -114,20 +116,22 @@ export const Header = () => {
         )}>
           <div className="container mx-auto px-4 py-4 space-y-4">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.name}
-                href={item.href}
-                className="block text-foreground hover:text-primary transition-colors font-medium"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => {
+                  navigate(item.href);
+                  setIsMenuOpen(false);
+                }}
+                className="block text-foreground hover:text-primary transition-colors font-medium w-full text-left"
               >
                 {item.name}
-              </a>
+              </button>
             ))}
             <div className="pt-4 border-t border-border space-y-2">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
                 Login
               </Button>
-              <Button variant="hero" className="w-full">
+              <Button variant="hero" className="w-full" onClick={() => navigate("/register")}>
                 Start KYC
               </Button>
             </div>
