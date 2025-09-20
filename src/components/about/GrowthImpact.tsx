@@ -80,7 +80,7 @@ export const GrowthImpact = () => {
                     </CardHeader>
                     <CardContent className="pt-0 text-center">
                       <p className="text-sm text-muted-foreground mb-4">{item.description}</p>
-                      <div className="space-y-2 text-xs">
+                      <div className="hidden-custom space-y-2 text-xs">
                         <div className="flex justify-between">
                           <span>Raised:</span>
                           <span className="font-semibold text-primary">{item.metrics.raised}</span>
@@ -138,7 +138,7 @@ export const GrowthImpact = () => {
         </div>
 
         {/* Interactive Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="hidden-custom grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* AUM Growth Chart */}
           <Card className="border-0 shadow-lg">
             <CardHeader>
@@ -229,7 +229,7 @@ export const GrowthImpact = () => {
             <Card key={index} className="border-0 shadow-lg text-center hover-glow">
               <CardContent className="p-6">
                 <stat.icon className="h-8 w-8 mx-auto mb-4 text-primary" />
-                <div className="text-2xl font-bold text-foreground mb-1">{stat.value}</div>
+                <div className="hidden-custom text-2xl font-bold text-foreground mb-1">{stat.value}</div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
               </CardContent>
             </Card>

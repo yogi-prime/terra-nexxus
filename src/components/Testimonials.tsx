@@ -161,7 +161,7 @@ export const Testimonials = () => {
                   </blockquote>
 
                   {/* Metrics */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="hidden-custom grid grid-cols-3 gap-4 mb-6">
                     <div className="text-center">
                       <div className="text-lg font-bold text-primary">{testimonials[currentTestimonial].investment}</div>
                       <div className="text-xs text-muted-foreground">Total Invested</div>
@@ -230,7 +230,7 @@ export const Testimonials = () => {
                       <CardContent className="p-0">
                         <p className="text-muted-foreground mb-4">{story.description}</p>
                         
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="hidden-custom grid grid-cols-3 gap-4">
                           <div className="text-center">
                             <div className="text-lg font-bold text-success">{story.metrics.funded}</div>
                             <div className="text-xs text-muted-foreground">Funded</div>

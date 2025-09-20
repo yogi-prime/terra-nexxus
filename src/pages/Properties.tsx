@@ -1,4 +1,10 @@
 import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/context/AuthContext";
+
 import { Header } from "@/components/Header";
 import { PropertiesHero } from "@/components/properties/PropertiesHero";
 import { FilterSidebar } from "@/components/properties/FilterSidebar";
@@ -13,7 +19,13 @@ export interface Property {
   id: string;
   title: string;
   location: string;
-  category: "Residential" | "Commercial" | "Farmhouse" | "Agri Land" | "Res Plots" | "Ind Plots";
+  category:
+    | "Residential"
+    | "Commercial"
+    | "Farmhouse"
+    | "Agri Land"
+    | "Res Plots"
+    | "Ind Plots";
   minInvest: number;
   targetRaise: number;
   raisedAmount: number;
@@ -36,6 +48,31 @@ export interface Filters {
 }
 
 const Properties = () => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Show loading while auth resolves
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg text-muted-foreground">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  // Show login prompt if user not logged in
+  if (!isAuthenticated) {
+    return (
+      <section className="py-20 bg-secondary/30 text-center">
+        <h2 className="text-3xl font-bold mb-4">Properties</h2>
+        <p className="text-xl text-muted-foreground mb-6">
+          Please login to view available properties.
+        </p>
+        <Button onClick={() => (window.location.href = "/login")}>Login</Button>
+      </section>
+    );
+  }
+
+  // Filters state
   const [filters, setFilters] = useState<Filters>({
     categories: [],
     location: { state: "", city: "" },
@@ -52,6 +89,7 @@ const Properties = () => {
   const [compareList, setCompareList] = useState<Property[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // Mock properties
   const mockProperties: Property[] = [
     {
       id: "1",
@@ -69,7 +107,7 @@ const Properties = () => {
       image: "/api/placeholder/400/300"
     },
     {
-      id: "2", 
+      id: "2",
       title: "Green Valley Farmhouse",
       location: "Lonavala, Maharashtra",
       category: "Farmhouse",
@@ -86,7 +124,7 @@ const Properties = () => {
     {
       id: "3",
       title: "Sector 18 Residential Plot",
-      location: "Gurugram, Haryana", 
+      location: "Gurugram, Haryana",
       category: "Res Plots",
       minInvest: 50000,
       targetRaise: 75000000,
@@ -102,7 +140,7 @@ const Properties = () => {
       id: "4",
       title: "Warehouse Complex Pune",
       location: "Pune, Maharashtra",
-      category: "Ind Plots", 
+      category: "Ind Plots",
       minInvest: 100000,
       targetRaise: 120000000,
       raisedAmount: 96000000,
@@ -124,7 +162,7 @@ const Properties = () => {
       projectedYield: 10.5,
       tenure: 36,
       riskBand: "Low",
-      status: "Open", 
+      status: "Open",
       highlights: ["Gated Community", "Premium Amenities", "IT Corridor"],
       image: "/api/placeholder/400/300"
     },
@@ -145,47 +183,32 @@ const Properties = () => {
     }
   ];
 
+  // Compare functions
   const addToCompare = (property: Property) => {
-    if (compareList.length < 3 && !compareList.find(p => p.id === property.id)) {
+    if (compareList.length < 3 && !compareList.find((p) => p.id === property.id)) {
       setCompareList([...compareList, property]);
     }
   };
 
   const removeFromCompare = (propertyId: string) => {
-    setCompareList(compareList.filter(p => p.id !== propertyId));
+    setCompareList(compareList.filter((p) => p.id !== propertyId));
   };
 
-  const filteredProperties = mockProperties.filter(property => {
-    // Apply search filter
-    if (searchQuery && !property.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !property.location.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
+  // Filter properties
+  const filteredProperties = mockProperties.filter((property) => {
+    if (
+      searchQuery &&
+      !property.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !property.location.toLowerCase().includes(searchQuery.toLowerCase())
+    ) return false;
 
-    // Apply category filter
-    if (filters.categories.length > 0 && !filters.categories.includes(property.category)) {
+    if (filters.categories.length > 0 && !filters.categories.includes(property.category)) return false;
+    if (property.minInvest < filters.ticketSizeRange[0] || property.minInvest > filters.ticketSizeRange[1])
       return false;
-    }
-
-    // Apply ticket size filter
-    if (property.minInvest < filters.ticketSizeRange[0] || property.minInvest > filters.ticketSizeRange[1]) {
+    if (property.projectedYield < filters.yieldRange[0] || property.projectedYield > filters.yieldRange[1])
       return false;
-    }
-
-    // Apply yield filter
-    if (property.projectedYield < filters.yieldRange[0] || property.projectedYield > filters.yieldRange[1]) {
-      return false;
-    }
-
-    // Apply status filter
-    if (filters.status.length > 0 && !filters.status.includes(property.status)) {
-      return false;
-    }
-
-    // Apply risk band filter
-    if (filters.riskBand.length > 0 && !filters.riskBand.includes(property.riskBand)) {
-      return false;
-    }
+    if (filters.status.length > 0 && !filters.status.includes(property.status)) return false;
+    if (filters.riskBand.length > 0 && !filters.riskBand.includes(property.riskBand)) return false;
 
     return true;
   });
@@ -193,15 +216,15 @@ const Properties = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      <main >
+
+      <main>
         <PropertiesHero />
-        
+
         <div className="container mx-auto px-4 py-8">
           <div className="flex gap-8">
             {/* Desktop Filter Sidebar */}
             <div className="hidden lg:block w-80 flex-shrink-0">
-              <FilterSidebar 
+              <FilterSidebar
                 filters={filters}
                 onFiltersChange={setFilters}
                 isOpen={isFilterOpen}
@@ -224,7 +247,7 @@ const Properties = () => {
 
               <PropertiesAnalytics properties={filteredProperties} />
 
-              <PropertyGrid 
+              <PropertyGrid
                 properties={filteredProperties}
                 viewMode={viewMode}
                 onAddToCompare={addToCompare}
@@ -238,21 +261,27 @@ const Properties = () => {
 
         {/* Mobile Filter Sidebar */}
         {isFilterOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setIsFilterOpen(false)}>
-            <div className="absolute right-0 top-0 h-full w-80 bg-background" onClick={e => e.stopPropagation()}>
-              <FilterSidebar 
+          <div
+            className="lg:hidden fixed inset-0 z-50 bg-black/50"
+            onClick={() => setIsFilterOpen(false)}
+          >
+            <div
+              className="absolute right-0 top-0 h-full w-80 bg-background"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FilterSidebar
                 filters={filters}
                 onFiltersChange={setFilters}
                 isOpen={isFilterOpen}
                 onToggle={() => setIsFilterOpen(false)}
-                isMobile={true}
+                isMobile
               />
             </div>
           </div>
         )}
       </main>
 
-      <CompareDrawer 
+      <CompareDrawer
         properties={compareList}
         onRemove={removeFromCompare}
         onClear={() => setCompareList([])}

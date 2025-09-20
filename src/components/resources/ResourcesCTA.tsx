@@ -49,7 +49,7 @@ export const ResourcesCTA = () => {
           </div>
 
           {/* Resource Summary */}
-          <div className="mb-12">
+          <div className="hidden-custom mb-12">
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 max-w-4xl mx-auto">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[

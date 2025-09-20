@@ -348,7 +348,7 @@ export const FeaturedCalculators = () => {
 
 
         {/* Active Calculator */}
-        <Card className="border-0 shadow-lg">
+        <Card className="hidden-custom border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               {(() => {

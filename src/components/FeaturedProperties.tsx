@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, MapPin, Calendar, TrendingUp, Users } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const properties = [
+  // Fill your properties array
   {
     id: 1,
     name: "Phoenix Tower",
@@ -85,16 +87,33 @@ const properties = [
 
 export const FeaturedProperties = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % Math.ceil(properties.length / 3));
-  };
+  const { isAuthenticated, loading } = useAuth();
 
-  const prevSlide = () => {
+  if (loading) {
+    return (
+      <section className="py-20 bg-secondary/30 text-center">
+        <p className="text-xl text-muted-foreground">Checking authentication...</p>
+      </section>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <section className="py-20 bg-secondary/30 text-center">
+        <h2 className="text-3xl font-bold mb-4">Featured Properties</h2>
+        <p className="text-xl text-muted-foreground mb-6">
+          Please login to view featured investment opportunities.
+        </p>
+        <Button onClick={() => (window.location.href = "/login")}>Login</Button>
+      </section>
+    );
+  }
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % Math.ceil(properties.length / 3));
+  const prevSlide = () =>
     setCurrentSlide((prev) => (prev - 1 + Math.ceil(properties.length / 3)) % Math.ceil(properties.length / 3));
-  };
 
-  const visibleProperties = properties.slice(currentSlide * 3, (currentSlide * 3) + 3);
+  const visibleProperties = properties.slice(currentSlide * 3, currentSlide * 3 + 3);
 
   return (
     <section id="properties" className="py-20 bg-secondary/30">
@@ -102,11 +121,8 @@ export const FeaturedProperties = () => {
         <div className="flex justify-between items-center mb-12">
           <div>
             <h2 className="text-4xl font-bold mb-4">Featured Properties</h2>
-            <p className="text-xl text-muted-foreground">
-              Handpicked investment opportunities across India
-            </p>
+            <p className="text-xl text-muted-foreground">Handpicked investment opportunities across India</p>
           </div>
-          
           <div className="flex gap-2">
             <Button variant="outline" size="icon" onClick={prevSlide}>
               <ChevronLeft className="h-4 w-4" />
@@ -120,27 +136,26 @@ export const FeaturedProperties = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {visibleProperties.map((property) => (
             <Card key={property.id} className="overflow-hidden hover-glow hover-lift group">
-              {/* Property Image */}
               <div className="relative h-48 overflow-hidden">
-                <img 
-                  src={property.image} 
+                <img
+                  src={property.image}
                   alt={property.name}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute top-4 left-4">
-                  <Badge 
-                    variant="outline" 
-                    className="bg-card/95 backdrop-blur-sm"
-                  >
+                  <Badge variant="outline" className="bg-card/95 backdrop-blur-sm">
                     {property.type}
                   </Badge>
                 </div>
                 <div className="absolute top-4 right-4">
-                  <Badge 
+                  <Badge
                     variant={property.status === "Open" ? "secondary" : "outline"}
                     className={`bg-card/95 backdrop-blur-sm ${
-                      property.status === "Closing Soon" ? "bg-warning/10 text-warning border-warning/20" :
-                      property.status === "Fully Funded" ? "bg-success/10 text-success border-success/20" : ""
+                      property.status === "Closing Soon"
+                        ? "bg-warning/10 text-warning border-warning/20"
+                        : property.status === "Fully Funded"
+                        ? "bg-success/10 text-success border-success/20"
+                        : ""
                     }`}
                   >
                     {property.status}
@@ -157,13 +172,10 @@ export const FeaturedProperties = () => {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Min Investment</p>
-                    <p className="font-bold text-primary">
-                      ₹{property.minInvestment.toLocaleString('en-IN')}
-                    </p>
+                    <p className="font-bold text-primary">₹{property.minInvestment.toLocaleString("en-IN")}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Projected Yield</p>
@@ -171,7 +183,6 @@ export const FeaturedProperties = () => {
                   </div>
                 </div>
 
-                {/* Funding Progress */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Funding Progress</span>
@@ -179,17 +190,13 @@ export const FeaturedProperties = () => {
                       {Math.round((property.currentFunding / property.targetRaise) * 100)}%
                     </span>
                   </div>
-                  <Progress 
-                    value={(property.currentFunding / property.targetRaise) * 100} 
-                    className="h-2"
-                  />
+                  <Progress value={(property.currentFunding / property.targetRaise) * 100} className="h-2" />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>₹{(property.currentFunding / 10000000).toFixed(1)}Cr raised</span>
                     <span>₹{(property.targetRaise / 10000000).toFixed(1)}Cr target</span>
                   </div>
                 </div>
 
-                {/* Additional Info */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
@@ -201,7 +208,6 @@ export const FeaturedProperties = () => {
                   </div>
                 </div>
 
-                {/* Highlights */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Key Highlights:</p>
                   <div className="flex flex-wrap gap-1">
@@ -213,8 +219,11 @@ export const FeaturedProperties = () => {
                   </div>
                 </div>
 
-                {/* CTA */}
-                <Button variant="default" className="w-full mt-4" disabled={property.status === "Fully Funded"}>
+                <Button
+                  variant="default"
+                  className="w-full mt-4"
+                  disabled={property.status === "Fully Funded"}
+                >
                   {property.status === "Fully Funded" ? "Fully Funded" : "View Property"}
                   {property.status !== "Fully Funded" && <TrendingUp className="h-4 w-4 ml-2" />}
                 </Button>
@@ -223,20 +232,16 @@ export const FeaturedProperties = () => {
           ))}
         </div>
 
-        {/* Pagination Dots */}
         <div className="flex justify-center gap-2 mt-8">
           {Array.from({ length: Math.ceil(properties.length / 3) }).map((_, index) => (
             <button
               key={index}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === currentSlide ? 'bg-primary' : 'bg-muted'
-              }`}
+              className={`w-3 h-3 rounded-full transition-colors ${index === currentSlide ? "bg-primary" : "bg-muted"}`}
               onClick={() => setCurrentSlide(index)}
             />
           ))}
         </div>
 
-        {/* View All CTA */}
         <div className="text-center mt-12">
           <Button variant="accent" size="lg">
             View All Properties

@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, Building, Target } from "lucide-react";
 import heroBackground from "@/assets/hero-background.jpg";
+import { useNavigate } from "react-router-dom";
 
 export const AboutHero = () => {
+  const navigate = useNavigate();
   const stats = [
     { icon: Target, label: "Total Raised", value: "₹1,200+ Cr", color: "text-primary" },
     { icon: Users, label: "Investors Onboarded", value: "15,000+", color: "text-accent" },
@@ -41,10 +43,10 @@ export const AboutHero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Button variant="hero" size="lg" className="text-lg px-8 py-4">
+            <Button variant="hero" size="lg" className="text-lg px-8 py-4"onClick={() => navigate("/register")}>
               Start KYC Process
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-4">
+            <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={() => navigate("/Properties")}>
               Browse Properties
             </Button>
           </div>
@@ -66,7 +68,7 @@ export const AboutHero = () => {
   <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
   <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
 
-  <div className="relative container mx-auto px-4 py-8">
+  <div className="hidden-custom relative container mx-auto px-4 py-8">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
       {[
         { icon: Target,  label: "Total Raised",         value: "₹1,200+ Cr" },

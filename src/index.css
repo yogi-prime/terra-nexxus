@@ -275,4 +275,8 @@
   .hover-glow {
     @apply transition-shadow duration-300 hover:shadow-premium;
   }
+  /*display none*/
+  .hidden-custom {
+    display: none;
+  }
 }

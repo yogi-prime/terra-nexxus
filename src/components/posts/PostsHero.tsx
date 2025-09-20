@@ -51,7 +51,7 @@ export const PostsHero = () => {
         </div>
         
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+        <div className="hidden-custom grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
           {[
             { label: "Articles", value: "500+", icon: BookOpen },
             { label: "Videos", value: "200+", icon: Video },

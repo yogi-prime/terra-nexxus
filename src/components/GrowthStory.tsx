@@ -132,7 +132,7 @@ export const GrowthStory = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="hidden-custom grid grid-cols-3 gap-4">
                         <div className="text-center">
                           <div className="text-lg font-bold text-primary">{milestone.metrics.aum}</div>
                           <div className="text-xs text-muted-foreground">AUM</div>
@@ -165,7 +165,7 @@ export const GrowthStory = () => {
         </div>
 
         {/* Impact Statistics */}
-        <div className="bg-card-premium rounded-2xl p-8">
+        <div className="hidden-custom bg-card-premium rounded-2xl p-8">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-card-premium-foreground mb-4">Our Impact</h3>
             <p className="text-card-premium-foreground/80 max-w-2xl mx-auto">

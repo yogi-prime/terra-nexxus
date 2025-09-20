@@ -39,7 +39,7 @@ export const PropertiesHero = () => {
         </div>
 
         {/* Stats — same card treatment as Home */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="hidden-custom grid grid-cols-2 md:grid-cols-4 gap-6">
           {stats.map(({ label, value, icon: Icon }, i) => (
             <div
               key={i}

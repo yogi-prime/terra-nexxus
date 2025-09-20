@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, TrendingUp, ArrowRight, Users, DollarSign, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const CTABanner = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -84,6 +86,7 @@ export const CTABanner = () => {
                 variant="accent" 
                 size="xl" 
                 className="group text-lg px-8 py-4 h-auto shadow-2xl hover:shadow-accent/20"
+                onClick={() => navigate("/register")}
               >
                 Start KYC Process
                 <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -137,11 +140,11 @@ export const CTABanner = () => {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <Button variant="hero" size="sm" className="hidden sm:flex">
+                  <Button variant="hero" size="sm" className="hidden sm:flex" onClick={() => navigate("/register")}>
                     Start KYC
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
-                  <Button variant="hero" size="sm" className="sm:hidden">
+                  <Button variant="hero" size="sm" className="sm:hidden" onClick={() => navigate("/register")}>
                     Start KYC
                   </Button>
                   <Button 

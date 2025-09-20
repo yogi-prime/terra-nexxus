@@ -72,7 +72,7 @@ export const PropertiesAnalytics = ({ properties }: PropertiesAnalyticsProps) =>
   return (
     <div className="mb-8">
       {/* KPI Cards */}
-<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div className="hidden-custom grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
   {kpiCards.map((kpi, index) => (
     <div key={index} className="rounded-2xl bg-[#0A1A16] p-[1px]">
       <div
@@ -119,7 +119,7 @@ export const PropertiesAnalytics = ({ properties }: PropertiesAnalyticsProps) =>
 
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="hidden-custom grid lg:grid-cols-2 gap-6">
         {/* Funding Progress Chart */}
         <div className="bg-card border border-accent/20 rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-4">Funding Progress</h3>
@@ -154,7 +154,7 @@ export const PropertiesAnalytics = ({ properties }: PropertiesAnalyticsProps) =>
         </div>
 
         {/* Category Distribution */}
-        <div className="bg-card border border-accent/20 rounded-xl p-6">
+        <div className="hidden-custom bg-card border border-accent/20 rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>

@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, Phone } from "lucide-react";
 import terraLogo from "../assets/logo-white.png";
+import API from "@/api/api"; // your axios instance
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,74 +21,123 @@ const Login = () => {
     email: "",
     phone: "",
     otp: "",
+    user_id: "",
     rememberDevice: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
-  const handleSendOTP = async () => {
-    if (loginMethod === "email" && !formData.email) {
-      toast({ variant: "destructive", description: "Please enter your email address" });
-      return;
-    }
-    if (loginMethod === "phone" && !formData.phone) {
-      toast({ variant: "destructive", description: "Please enter your phone number" });
-      return;
-    }
+const startResendCountdown = (duration: number = 30) => {
+  setResendTimer(duration);
+  const interval = setInterval(() => {
+    setResendTimer((prev) => {
+      if (prev <= 1) {
+        clearInterval(interval);
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+};
 
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep("otp");
-      setResendTimer(30);
-      toast({ description: `OTP sent to your ${loginMethod}` });
-      
-      // Start countdown
-      const interval = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }, 1500);
-  };
+// ✅ Send OTP
+const handleSendOTP = async () => {
+  if (!formData.email) {
+    toast({ variant: "destructive", description: "Please enter your email address" });
+    return;
+  }
 
-  const handleVerifyOTP = async () => {
-    if (formData.otp.length !== 6) {
-      toast({ variant: "destructive", description: "Please enter complete OTP" });
-      return;
-    }
+  setIsLoading(true);
+  try {
+    const { data } = await API.post("/send-login-otp", { email: formData.email });
 
-    // Fake validation - accept 123456 or any 6 digits
-    if (formData.otp === "123456" || formData.otp.length === 6) {
-      setIsLoading(true);
-      setTimeout(() => {
-        toast({ description: "Login successful! Redirecting..." });
-        navigate("/investor/1");
-      }, 1000);
-    } else {
-      toast({ variant: "destructive", description: "Invalid OTP. Try 123456" });
-    }
-  };
+    setFormData((prev) => ({ ...prev, user_id: data.user_id }));
+    setStep("otp");
+    startResendCountdown();
+    toast({ description: "OTP sent to your email" });
 
-  const handleResendOTP = () => {
-    setResendTimer(30);
-    toast({ description: `OTP resent to your ${loginMethod}` });
-    
-    const interval = setInterval(() => {
-      setResendTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  } catch (err: any) {
+    toast({ variant: "destructive", description: err.response?.data?.message || err.message });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// ✅ Verify OTP
+// const handleVerifyOTP = async () => {
+//   if (formData.otp.length !== 6) {
+//     toast({ variant: "destructive", description: "Please enter complete OTP" });
+//     return;
+//   }
+
+//   setIsLoading(true);
+//   try {
+//     const { data } = await API.post("/verify-otp", {
+//       user_id: formData.user_id,
+//       otp: formData.otp,
+//     });
+
+//     toast({ description: "Login successful! Redirecting..." });
+//     navigate("/investor/1"); // adjust route
+
+//   } catch (err: any) {
+//     toast({ variant: "destructive", description: err.response?.data?.message || err.message });
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
+
+const { login } = useAuth();
+
+// ✅ Verify OTP
+const handleVerifyOTP = async () => {
+  if (formData.otp.length !== 6) {
+    toast({ variant: "destructive", description: "Please enter complete OTP" });
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    const { data } = await API.post("/verify-otp", {
+      user_id: formData.user_id,
+      otp: formData.otp,
+    });
+
+    // ✅ Save login state to context & localStorage
+    login(data.token, data.user);
+
+    toast({ description: "Login successful! Redirecting..." });
+    navigate("/investor/1");
+
+  } catch (err: any) {
+    toast({
+      variant: "destructive",
+      description: err.response?.data?.message || err.message,
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// ✅ Resend OTP
+const handleResendOTP = async () => {
+  if (!formData.user_id) {
+    toast({ variant: "destructive", description: "User ID missing. Send OTP first." });
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    await API.post("/resend-otp", { user_id: formData.user_id });
+    startResendCountdown();
+    toast({ description: "OTP resent to your email" });
+
+  } catch (err: any) {
+    toast({ variant: "destructive", description: err.response?.data?.message || err.message });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 return (
   <div className="relative min-h-screen lg:h-screen overflow-x-hidden lg:overflow-hidden">
@@ -167,24 +218,24 @@ return (
               {/* Tabs: Email / Phone */}
               <Tabs
                 value={loginMethod}
-                onValueChange={(v) => setLoginMethod(v as "email" | "phone")}
+                onValueChange={(v) => setLoginMethod(v as "email")}
                 className="mb-6"
               >
-                <TabsList className="grid w-full grid-cols-2 bg-white/10 ring-1 ring-white/15">
+                <TabsList className="grid w-full grid-cols-1 bg-white/10 ring-1 ring-white/15">
                   <TabsTrigger
                     value="email"
-                    className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
+                    className="flex items-center w-full gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
                   >
                     <Mail className="h-4 w-4" />
                     Email
                   </TabsTrigger>
-                  <TabsTrigger
+                  {/* <TabsTrigger
                     value="phone"
                     className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
                   >
                     <Phone className="h-4 w-4" />
                     Phone
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                 </TabsList>
 
                 <TabsContent value="email" className="space-y-4 mt-6">
@@ -201,7 +252,7 @@ return (
                   </div>
                 </TabsContent>
 
-                <TabsContent value="phone" className="space-y-4 mt-6">
+                {/* <TabsContent value="phone" className="space-y-4 mt-6">
                   <div>
                     <Label className="text-white/85" htmlFor="phone">Phone Number</Label>
                     <div className="flex mt-2">
@@ -223,7 +274,7 @@ return (
                       />
                     </div>
                   </div>
-                </TabsContent>
+                </TabsContent> */}
               </Tabs>
 
               {/* Remember device */}

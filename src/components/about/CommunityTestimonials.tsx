@@ -248,7 +248,7 @@ export const CommunityTestimonials = () => {
                   <h4 className="text-xl font-bold mb-2">{story.name}</h4>
                   <p className="text-primary font-semibold mb-4">{story.project}</p>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="hidden-custom grid grid-cols-2 gap-4 mb-4">
                     <div className="text-center p-3 bg-secondary/30 rounded-lg">
                       <div className="text-lg font-bold text-success">{story.raised}</div>
                       <div className="text-xs text-muted-foreground">Total Raised</div>
@@ -282,7 +282,7 @@ export const CommunityTestimonials = () => {
                   <div key={index} className="text-center p-4 bg-secondary/30 rounded-lg hover-glow">
                     <MapPin className="h-8 w-8 mx-auto mb-3 text-primary" />
                     <h4 className="font-bold text-lg mb-2">{stat.location}</h4>
-                    <div className="space-y-2 text-sm">
+                    <div className="hidden-custom space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Investors:</span>
                         <span className="font-semibold text-primary">{stat.investors}</span>

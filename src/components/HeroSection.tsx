@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Play, Shield, TrendingUp } from "lucide-react";
 import heroBackground from "@/assets/hero-background.jpg";
+import { useNavigate } from "react-router-dom";
 
 export const HeroSection = () => {
+  const navigate = useNavigate();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Hero Background */}
@@ -19,7 +21,7 @@ export const HeroSection = () => {
       <div className="relative z-10 container mx-auto px-4 py-20">
         <div className="max-w-4xl">
           {/* Badge */}
-          <div className="flex items-center gap-2 mb-6">
+          <div className="hidden-custom flex items-center gap-2 mb-6">
             <Badge variant="outline" className="bg-primary-light/20 text-primary border-primary/30">
               <Shield className="h-3 w-3 mr-1" />
               SEBI Compliant Platform
@@ -47,18 +49,18 @@ export const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
-            <Button variant="hero" size="xl" className="group">
+            <Button variant="hero" size="xl" className="group" onClick={() => navigate("/Properties")}>
               Browse Properties
               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="premium" size="xl" className="group">
+            <Button variant="premium" size="xl" className="group" onClick={() => navigate("/register")}>
               <Play className="h-5 w-5 mr-2" />
               Start KYC Process
             </Button>
           </div>
 
           {/* Live Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
+          <div className="hidden-custom grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
             {[
               { label: "AUM", value: "₹1,247 Cr", change: "+23%" },
               { label: "Investors", value: "15,247", change: "+456 this month" },

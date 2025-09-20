@@ -101,7 +101,7 @@ export const PostsCTA = () => {
           </div>
           
           {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-12 border-t border-border/50">
+          <div className="hidden-custom grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-12 border-t border-border/50">
             {[
               { icon: BookOpen, label: "Articles Published", value: "500+" },
               { icon: Video, label: "Video Guides", value: "200+" },

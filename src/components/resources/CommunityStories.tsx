@@ -145,7 +145,7 @@ export const CommunityStories = () => {
         </div>
 
         {/* Community Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div className="hidden-custom grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           {communityStats.map((stat, index) => (
             <Card key={index} className="border-0 shadow-lg text-center hover-glow">
               <CardContent className="p-6">
@@ -296,7 +296,7 @@ export const CommunityStories = () => {
                   <h4 className="text-xl font-bold mb-2">{story.ownerName}</h4>
                   <p className="text-primary font-semibold mb-4">{story.projectName}</p>
                   
-                  <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+                  <div className="hidden-custom grid grid-cols-3 gap-3 mb-4 text-center">
                     <div className="p-3 bg-secondary/30 rounded-lg">
                       <div className="text-lg font-bold text-success">{story.amountRaised}</div>
                       <div className="text-xs text-muted-foreground">Raised</div>

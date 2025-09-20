@@ -64,7 +64,7 @@ export const AnalyticsSnapshot = () => {
                       style={{ height: `${(data.amount / 247) * 200}px` }}
                     />
                     <span className="text-xs text-muted-foreground">{data.month}</span>
-                    <span className="text-xs font-semibold">₹{data.amount}Cr</span>
+                    <span className="hidden-custom text-xs font-semibold">₹{data.amount}Cr</span>
                   </div>
                 ))}
               </div>

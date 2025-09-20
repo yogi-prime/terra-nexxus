@@ -5,8 +5,13 @@ import {
   ArrowLeftRight, 
   Shield, 
   Coins, 
-  TrendingUp 
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  Home,
+  ChartBar
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const features = [
   {
@@ -53,10 +58,21 @@ const features = [
   }
 ];
 
+const comparison = [
+  { option: "Avg Annual Return", stocks: "7–10%", bonds: "2–5%", gold: "5–7%", realEstate: "8–12%" },
+  { option: "Initial Investment", stocks: "Low–Medium", bonds: "Medium", gold: "Medium", realEstate: "Low (₹10,000)" },
+  { option: "Monthly Income", stocks: "❌", bonds: "❌", gold: "❌", realEstate: "✅ Earn Rent" },
+  { option: "Market Volatility", stocks: "High", bonds: "Low", gold: "Medium", realEstate: "Low" },
+  { option: "Inflation Protection", stocks: "Low", bonds: "Low", gold: "High", realEstate: "✅ Protects Against Inflation" },
+  { option: "Capital Growth", stocks: "Medium", bonds: "Medium", gold: "Medium", realEstate: "High (Long-Term)" },
+];
+
 export const WhyTerraNexxus = () => {
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
+        
+        {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">Why Choose Terra Nexxus?</h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -64,6 +80,7 @@ export const WhyTerraNexxus = () => {
           </p>
         </div>
 
+        {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <Card key={index} className="hover-glow hover-lift group border-0 shadow-md">
@@ -85,8 +102,95 @@ export const WhyTerraNexxus = () => {
           ))}
         </div>
 
+        {/* Comparison Grid */}
+        <div className="mt-20 font-sans">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">Investment Comparison</h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Compare traditional investment options and see why real estate stands out.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Stocks */}
+            <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-2 bg-white border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-center text-lg font-semibold text-gray-800 flex items-center justify-center gap-2">
+                  <ChartBar className="w-5 h-5" /> Stocks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 divide-y divide-gray-200">
+                  {comparison.map((row, i) => (
+                    <li key={i} className="flex items-center justify-between text-base py-2">
+                      <span>{row.option}</span>
+                      {row.stocks === "❌" ? <XCircle className="h-5 w-5 text-red-500" /> : row.stocks === "✅" ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <span className="font-medium">{row.stocks}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Bonds */}
+            <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-2 bg-white border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-center text-lg font-semibold text-gray-800 flex items-center justify-center gap-2">
+                  <Coins className="w-5 h-5" /> Bonds
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 divide-y divide-gray-200">
+                  {comparison.map((row, i) => (
+                    <li key={i} className="flex items-center justify-between text-base py-2">
+                      <span>{row.option}</span>
+                      {row.bonds === "❌" ? <XCircle className="h-5 w-5 text-red-500" /> : row.bonds === "✅" ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <span className="font-medium">{row.bonds}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Gold */}
+            <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-2 bg-white border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-center text-lg font-semibold text-gray-800 flex items-center justify-center gap-2">
+                  <TrendingUp className="w-5 h-5" /> Gold
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 divide-y divide-gray-200">
+                  {comparison.map((row, i) => (
+                    <li key={i} className="flex items-center justify-between text-base py-2">
+                      <span>{row.option}</span>
+                      {row.gold === "❌" ? <XCircle className="h-5 w-5 text-red-500" /> : row.gold === "✅" ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <span className="font-medium">{row.gold}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Real Estate */}
+            <Card className="rounded-2xl shadow-2xl transform hover:scale-105 transition-all border-2 border-primary bg-gradient-to-br from-primary/10 to-white">
+              <CardHeader>
+                <CardTitle className="text-center text-lg text-primary font-bold flex items-center justify-center gap-2">
+                  <Home className="w-5 h-5 text-primary" /> Real Estate <Badge variant="secondary">Best Choice</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 divide-y divide-gray-200">
+                  {comparison.map((row, i) => (
+                    <li key={i} className="flex items-center justify-between text-base py-2">
+                      <span>{row.option}</span>
+                      {row.realEstate === "❌" ? <XCircle className="h-5 w-5 text-red-500" /> : row.realEstate === "✅" || row.realEstate.includes("✅") ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <span className="font-semibold text-primary">{row.realEstate}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
         {/* Trust Indicators */}
-        <div className="mt-16 bg-secondary/30 rounded-2xl p-8">
+        <div className="hidden-custom mt-16 bg-secondary/30 rounded-2xl p-8">
           <div className="text-center mb-8">
             <h3 className="text-2xl font-bold mb-2">Trusted by Thousands</h3>
             <p className="text-muted-foreground">Join India's fastest growing fractional real estate platform</p>

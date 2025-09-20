@@ -160,7 +160,7 @@ export const Leadership = () => {
               Every investment, every process, and every decision is guided by our commitment to investor protection 
               and regulatory excellence.
             </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-4">
+            <div className="hidden-custom mt-6 flex flex-wrap justify-center gap-4">
               <Badge variant="outline" className="text-sm px-4 py-2">15+ Years Experience</Badge>
               <Badge variant="outline" className="text-sm px-4 py-2">₹5000+ Cr Transactions</Badge>
               <Badge variant="outline" className="text-sm px-4 py-2">Zero Compliance Issues</Badge>

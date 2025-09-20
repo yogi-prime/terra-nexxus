@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import terraLogo from "../assets/terra_logo.png";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import API from "@/api/api"; // your axios instance
 
 import { 
   Menu, 
@@ -31,6 +33,18 @@ const quickLinks = [
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, logout } = useAuth(); // ⬅️ get user + logout from context
+
+  const handleLogout = async () => {
+    try {
+      await API.post("/logout"); // invalidate Sanctum token
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      logout(); // clear context + localStorage
+      navigate("/login");
+    }
+  };
 
   return (
     <>
@@ -67,13 +81,13 @@ export const Header = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-               <Link to="/">
-    <img
-      src={terraLogo}
-      alt="Terra Nexxus Logo"
-      className="w-auto h-10 object-contain cursor-pointer"
-    />
-  </Link>
+              <Link to="/">
+                <img
+                  src={terraLogo}
+                  alt="Terra Nexxus Logo"
+                  className="w-auto h-10 object-contain cursor-pointer"
+                />
+              </Link>
             </div>
 
             {/* Desktop Navigation */}
@@ -89,18 +103,37 @@ export const Header = () => {
               ))}
             </nav>
 
-            {/* Desktop CTA */}
-            <div className="hidden md:flex items-center gap-4">
-              <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
-                Login
-              </Button>
-              <Button variant="hero" size="sm" onClick={() => navigate("/register")}>
-                Start KYC
-                <Badge variant="secondary" className="ml-2 bg-accent/100 text-accent-foreground">
-                  Fast Track
-                </Badge>
-              </Button>
-            </div>
+            {/* Desktop Auth Area */}
+<div className="hidden md:flex items-center gap-4">
+  {!user ? (
+    <>
+      <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
+        Login
+      </Button>
+      <Button variant="hero" size="sm" onClick={() => navigate("/register")}>
+        Start KYC
+        <Badge
+          variant="secondary"
+          className="ml-2 bg-accent/100 text-accent-foreground"
+        >
+          Fast Track
+        </Badge>
+      </Button>
+    </>
+  ) : (
+    <>
+      {/* 👇 Greeting */}
+      {/* <span className="text-sm text-muted-foreground">
+        Hi, <span className="font-medium text-foreground">{user.name || user.email}</span>
+      </span> */}
+
+      {/* Logout button */}
+      <Button variant="destructive" size="sm" onClick={handleLogout}>
+        Logout
+      </Button>
+    </>
+  )}
+</div>
 
             {/* Mobile Menu Button */}
             <button
@@ -113,10 +146,12 @@ export const Header = () => {
         </div>
 
         {/* Mobile Menu */}
-        <div className={cn(
-          "md:hidden border-t border-border transition-all duration-300 overflow-hidden",
-          isMenuOpen ? "max-h-96" : "max-h-0"
-        )}>
+        <div
+          className={cn(
+            "md:hidden border-t border-border transition-all duration-300 overflow-hidden",
+            isMenuOpen ? "max-h-96" : "max-h-0"
+          )}
+        >
           <div className="container mx-auto px-4 py-4 space-y-4">
             {navItems.map((item) => (
               <button
@@ -130,14 +165,51 @@ export const Header = () => {
                 {item.name}
               </button>
             ))}
+
             <div className="pt-4 border-t border-border space-y-2">
-              <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
-                Login
-              </Button>
-              <Button variant="hero" className="w-full" onClick={() => navigate("/register")}>
-                Start KYC
-              </Button>
-            </div>
+  {!user ? (
+    <>
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => {
+          navigate("/login");
+          setIsMenuOpen(false);
+        }}
+      >
+        Login
+      </Button>
+      <Button
+        variant="hero"
+        className="w-full"
+        onClick={() => {
+          navigate("/register");
+          setIsMenuOpen(false);
+        }}
+      >
+        Start KYC
+      </Button>
+    </>
+  ) : (
+    <>
+      {/* 👇 Greeting */}
+      {/* <p className="text-sm text-muted-foreground mb-2">
+        Hi, <span className="font-medium text-foreground">{user.name || user.email}</span>
+      </p> */}
+
+      <Button
+        variant="destructive"
+        className="w-full"
+        onClick={() => {
+          handleLogout();
+          setIsMenuOpen(false);
+        }}
+      >
+        Logout
+      </Button>
+    </>
+  )}
+</div>
           </div>
         </div>
       </header>
