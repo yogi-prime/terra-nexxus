@@ -42,10 +42,11 @@ export const HeroSection = () => {
           </h1>
 
           <p className="text-xl md:text-2xl text-card-premium-foreground/80 mb-8 max-w-3xl leading-relaxed">
-            Start with just <span className="text-accent font-bold">₹10,000</span> and diversify across 
-            <span className="text-primary font-semibold"> Residential, Commercial, Land & more</span>. 
-            Join 15,000+ investors building wealth through fractional real estate.
-          </p>
+  Take your first step with a <span className="text-accent font-bold">minimal investment</span> and diversify across 
+  <span className="text-primary font-semibold"> Residential, Commercial, Land & beyond</span> – 
+  be part of an <span className="text-accent font-bold">ever-growing investor community</span>.
+</p>
+
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-12">

@@ -8,6 +8,7 @@ import {
   Building,
   Target
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const liveStats = [
   { label: "Active Investors", value: "15,247", icon: Users },
@@ -17,6 +18,7 @@ const liveStats = [
 ];
 
 export const ClosingCTA = () => {
+  const navigate = useNavigate();
   return (
     <section className="relative py-20 overflow-hidden">
       {/* Animated Background */}
@@ -41,7 +43,7 @@ export const ClosingCTA = () => {
             </div>
             
             <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              Join 15,000+ Investors
+              Join A growing community of Investors
               <br />
               <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
                 Building Wealth
@@ -50,7 +52,7 @@ export const ClosingCTA = () => {
             
             <p className="text-xl md:text-2xl text-white/90 max-w-4xl mx-auto leading-relaxed">
               Start your fractional real estate journey today. Own premium properties across 
-              6 categories with investments starting from just ₹10,000.
+              6 categories with investments starting from minimal amount.
             </p>
           </div>
 
@@ -82,6 +84,7 @@ export const ClosingCTA = () => {
             <Button 
               size="xl" 
               className="bg-white text-primary hover:bg-white/90 shadow-2xl hover:shadow-white/20 hover:scale-105 transition-all duration-300 text-xl px-12 py-6"
+              onClick={() => navigate("/register")}
             >
               Start KYC Process
               <ArrowRight className="ml-3 h-6 w-6" />
@@ -91,6 +94,7 @@ export const ClosingCTA = () => {
               variant="outline" 
               size="xl" 
               className="border-white/30 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm text-xl px-12 py-6"
+              onClick={() => navigate("/properties")}
             >
               Browse Properties
             </Button>
@@ -101,7 +105,7 @@ export const ClosingCTA = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
               <TrendingUp className="h-8 w-8 text-white mb-4 mx-auto" />
               <h4 className="text-lg font-semibold text-white mb-2">Start Small</h4>
-              <p className="text-white/80 text-sm">Begin with just ₹10,000 and build your portfolio gradually</p>
+              <p className="text-white/80 text-sm">Begin with just minimal amount and build your portfolio gradually</p>
             </div>
             
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">

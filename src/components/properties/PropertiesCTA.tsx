@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, UserCheck, Building2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const PropertiesCTA = () => {
+  const navigate = useNavigate();
   return (
     <div className="mt-12 mb-8">
       <div className="gradient-primary rounded-2xl p-8 text-center relative overflow-hidden">
@@ -20,7 +22,7 @@ export const PropertiesCTA = () => {
 
         <div className="relative z-10">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Start Investing in Properties from ₹10,000 Today
+            Start Investing in Properties from minimal investment Today
           </h2>
           <p className="text-white/90 text-lg mb-8 max-w-2xl mx-auto">
             Join thousands of investors who are building wealth through fractional real estate ownership. 
@@ -32,6 +34,7 @@ export const PropertiesCTA = () => {
               variant="secondary" 
               size="lg" 
               className="bg-white text-primary hover:bg-white/90 shadow-lg"
+              onClick={() => navigate("/register")}
             >
               <UserCheck className="h-5 w-5 mr-2" />
               Start KYC Process
@@ -42,6 +45,7 @@ export const PropertiesCTA = () => {
               variant="outline" 
               size="lg"
               className="border-white/30 text-primary  hover:bg-white/10 hover:border-white/50"
+              onClick={() => navigate("/properties")}
             >
               <Building2 className="h-5 w-5 mr-2" />
               Browse All Categories
@@ -65,7 +69,7 @@ export const PropertiesCTA = () => {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-success rounded-full"></div>
-                <span>15,000+ Investors</span>
+                <span>Countless investors</span>
               </div>
             </div>
           </div>

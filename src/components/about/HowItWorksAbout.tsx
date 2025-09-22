@@ -11,13 +11,14 @@ import {
   ArrowRight,
   CheckCircle
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const steps = [
   {
     icon: UserPlus,
     title: "Sign Up",
     description: "Create your account",
-    details: "Quick registration with email and mobile number verification. Join 15,000+ investors already on the platform.",
+    details: "Quick registration with email and mobile number verification. Join Thousands of investors already on the platform.",
     time: "2 mins",
     color: "text-primary"
   },
@@ -41,7 +42,7 @@ const steps = [
     icon: Coins,
     title: "Invest Fractionally",
     description: "Make your investment",
-    details: "Invest as low as ₹10,000 in any property. Secure payment through escrow accounts and bank transfers.",
+    details: "Starting investment in any property. Secure payment through escrow accounts and bank transfers.",
     time: "3 mins",
     color: "text-warning"
   },
@@ -64,6 +65,7 @@ const steps = [
 ];
 
 export const HowItWorksAbout = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
@@ -176,14 +178,14 @@ export const HowItWorksAbout = () => {
         <div className="text-center">
           <h3 className="text-2xl font-bold mb-4">Ready to Start Your Journey?</h3>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Join 15,000+ investors who have already started building their real estate portfolio with Terra Nexxus
+            Join Thousands of investors who have already started building their real estate portfolio with Terra Nexxus
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="lg" className="text-lg px-8">
+            <Button variant="hero" size="lg" className="text-lg px-8" onClick={() => navigate("/register")}>
               Start KYC Process
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8">
+            <Button variant="outline" size="lg" className="text-lg px-8" onClick={() => navigate("/properties")}>
               Browse Properties
             </Button>
           </div>

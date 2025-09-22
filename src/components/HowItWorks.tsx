@@ -40,7 +40,7 @@ const steps = [
   {
     icon: Wallet,
     title: "Invest Fractionally",
-    description: "Start with just ₹10,000",
+    description: "Start with minimal investment",
     details: "Choose your investment amount and secure your fractional ownership",
     time: "2 min"
   },

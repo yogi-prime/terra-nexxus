@@ -9,8 +9,10 @@ import {
   FileText,
   Users
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const ResourcesCTA = () => {
+  const navigate = useNavigate();
   return (
     <section className="relative py-20 overflow-hidden">
       {/* Animated Background */}
@@ -91,6 +93,7 @@ export const ResourcesCTA = () => {
               variant="outline" 
               size="xl" 
               className="border-white/30 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm text-xl px-12 py-6"
+              onClick={() => navigate("/properties")}
             >
               <BookOpen className="mr-3 h-6 w-6" />
               Browse Properties

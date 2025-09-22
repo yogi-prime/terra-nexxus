@@ -240,7 +240,7 @@ export const ResourcesPreview = () => {
                 </Button>
               </div>
               <p className="text-sm opacity-70 mt-3">
-                Join 25,000+ investors • No spam, unsubscribe anytime
+                Join an ever-growing network of investors • No spam, unsubscribe anytime
               </p>
             </CardContent>
           </Card>

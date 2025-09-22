@@ -254,7 +254,7 @@ export const Testimonials = () => {
             {/* CTA */}
             <Card className="mt-6 gradient-primary text-white border-0">
               <CardContent className="p-6 text-center">
-                <h4 className="text-lg font-bold mb-2">Join 15,000+ Happy Investors</h4>
+                <h4 className="text-lg font-bold mb-2">Join thousands of Happy Investors</h4>
                 <p className="text-white/90 mb-4">Start your real estate investment journey today</p>
                 <Button variant="premium" className="bg-white text-primary hover:bg-white/90">
                   <TrendingUp className="h-4 w-4 mr-2" />

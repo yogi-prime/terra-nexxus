@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const investorStories = [
   {
@@ -106,6 +107,7 @@ const communityStats = [
 ];
 
 export const CommunityTestimonials = () => {
+  const navigate = useNavigate();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   const nextTestimonial = () => {
@@ -309,11 +311,11 @@ export const CommunityTestimonials = () => {
             <Heart className="h-16 w-16 mx-auto mb-6 text-primary" />
             <h3 className="text-2xl font-bold mb-4">Join Our Growing Community</h3>
             <p className="text-lg text-muted-foreground mb-6 max-w-3xl mx-auto">
-              Be part of 15,000+ investors who are building wealth through fractional real estate. 
+              Be part of An ever-growing network of investors who are building wealth through fractional real estate. 
               Share your success story and connect with like-minded investors.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="hero" size="lg">
+              <Button variant="hero" size="lg" onClick={() => navigate("/register")}>
                 Start Your Journey
                 <TrendingUp className="ml-2 h-5 w-5" />
               </Button>

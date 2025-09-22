@@ -173,7 +173,7 @@ return (
         <div className="max-w-md">
           <h1 className="text-3xl font-bold text-white">Premium Fractional Real Estate</h1>
           <p className="mt-2 text-white/75">
-            Invest from ₹10K. Own fractions across residential, commercial, land & more.
+            Invest from small amount. Own fractions across residential, commercial, land & more.
           </p>
 
           <div className="mt-8 space-y-4">

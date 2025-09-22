@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, MapPin, Calendar, TrendingUp, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const properties = [
   // Fill your properties array
@@ -86,6 +87,7 @@ const properties = [
 ];
 
 export const FeaturedProperties = () => {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const { isAuthenticated, loading } = useAuth();
 
@@ -243,7 +245,7 @@ export const FeaturedProperties = () => {
         </div>
 
         <div className="text-center mt-12">
-          <Button variant="accent" size="lg">
+          <Button variant="accent" size="lg" onClick={() => navigate("/properties")}>
             View All Properties
             <TrendingUp className="h-5 w-5 ml-2" />
           </Button>

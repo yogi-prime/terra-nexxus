@@ -14,6 +14,8 @@ import { PropertyGrid } from "@/components/properties/PropertyGrid";
 import { CompareDrawer } from "@/components/properties/CompareDrawer";
 import { PropertiesCTA } from "@/components/properties/PropertiesCTA";
 import { Footer } from "@/components/Footer";
+import { TrendingUp } from "lucide-react";
+import img1 from "@/assets/1.jpg";
 
 export interface Property {
   id: string;
@@ -61,16 +63,59 @@ const Properties = () => {
 
   // Show login prompt if user not logged in
   if (!isAuthenticated) {
-    return (
-      <section className="py-20 bg-secondary/30 text-center">
-        <h2 className="text-3xl font-bold mb-4">Properties</h2>
-        <p className="text-xl text-muted-foreground mb-6">
-          Please login to view available properties.
-        </p>
-        <Button onClick={() => (window.location.href = "/login")}>Login</Button>
+  return (
+    <div className="min-h-screen bg-secondary/100 flex flex-col">
+      <Header />
+
+      <section className="relative flex-1 flex flex-col justify-center items-center text-center px-6 to-accent overflow-hidden">
+        
+        {/* Decorative floating circles */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-32 h-32 rounded-full border-2 border-white animate-float"></div>
+          <div className="absolute bottom-20 right-20 w-24 h-24 rounded-full border border-white animate-float" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-white animate-float" style={{ animationDelay: '2s' }}></div>
+        </div>
+
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-primary mb-4 drop-shadow-lg">
+            Explore Premium Properties
+          </h1>
+          <p className="text-lg md:text-xl text-gray/90 mb-8 leading-relaxed drop-shadow-sm">
+            Discover handpicked investment opportunities across India. Sign in to access detailed property listings, funding progress, projected yields, and more.
+          </p>
+
+          <Button
+  size="lg"
+  className="relative bg-gradient-to-r from-primary to-accent text-white font-semibold px-10 py-4 rounded-xl 
+             shadow-lg hover:shadow-2xl hover:scale-105 transition-transform duration-300"
+  onClick={() => (window.location.href = "/login")}
+>
+  <span className="absolute inset-0 rounded-xl bg-white/20 opacity-0 hover:opacity-100 transition-opacity"></span>
+  <span className="relative z-10">Login to Explore</span>
+  <TrendingUp className="w-5 h-5" />
+</Button>
+          {/* Property type cards with floating animation */}
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {[
+              { title: "Residential", subtitle: "Apartments & Villas" },
+              { title: "Commercial", subtitle: "Offices & Retail" },
+              { title: "Farmhouse", subtitle: "Weekend Getaways" },
+            ].map((item, idx) => (
+              <div
+                key={item.title}
+                className={`bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 hover:bg-white/20 transition-all animate-float`}
+                style={{ animationDelay: `${idx * 0.5}s` }}
+              >
+                <p className="font-bold text-primary text-lg mb-1">{item.title}</p>
+                <p className="text-gray/80 text-sm">{item.subtitle}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
-    );
-  }
+    </div>
+  );
+}
 
   // Filters state
   const [filters, setFilters] = useState<Filters>({
@@ -90,98 +135,30 @@ const Properties = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Mock properties
-  const mockProperties: Property[] = [
-    {
-      id: "1",
-      title: "Phoenix One Bengaluru West",
-      location: "Bengaluru, Karnataka",
-      category: "Commercial",
-      minInvest: 25000,
-      targetRaise: 50000000,
-      raisedAmount: 42500000,
-      projectedYield: 12.5,
-      tenure: 36,
-      riskBand: "Medium",
-      status: "Open",
-      highlights: ["Grade-A Office", "Tech Park Location", "Anchor Tenant"],
-      image: "/api/placeholder/400/300"
-    },
-    {
-      id: "2",
-      title: "Green Valley Farmhouse",
-      location: "Lonavala, Maharashtra",
-      category: "Farmhouse",
-      minInvest: 10000,
-      targetRaise: 15000000,
-      raisedAmount: 15000000,
-      projectedYield: 8.5,
-      tenure: 24,
-      riskBand: "Low",
-      status: "Fully Funded",
-      highlights: ["Nature Resort", "Weekend Getaway", "Rental Income"],
-      image: "/api/placeholder/400/300"
-    },
-    {
-      id: "3",
-      title: "Sector 18 Residential Plot",
-      location: "Gurugram, Haryana",
-      category: "Res Plots",
-      minInvest: 50000,
-      targetRaise: 75000000,
-      raisedAmount: 67500000,
-      projectedYield: 15.2,
-      tenure: 48,
-      riskBand: "High",
-      status: "Closing Soon",
-      highlights: ["Prime Location", "Metro Connectivity", "High Appreciation"],
-      image: "/api/placeholder/400/300"
-    },
-    {
-      id: "4",
-      title: "Warehouse Complex Pune",
-      location: "Pune, Maharashtra",
-      category: "Ind Plots",
-      minInvest: 100000,
-      targetRaise: 120000000,
-      raisedAmount: 96000000,
-      projectedYield: 14.8,
-      tenure: 60,
-      riskBand: "Medium",
-      status: "Open",
-      highlights: ["Logistics Hub", "E-commerce Ready", "Long Lease"],
-      image: "/api/placeholder/400/300"
-    },
-    {
-      id: "5",
-      title: "Luxury Apartments Hyderabad",
-      location: "Hyderabad, Telangana",
-      category: "Residential",
-      minInvest: 20000,
-      targetRaise: 80000000,
-      raisedAmount: 32000000,
-      projectedYield: 10.5,
-      tenure: 36,
-      riskBand: "Low",
-      status: "Open",
-      highlights: ["Gated Community", "Premium Amenities", "IT Corridor"],
-      image: "/api/placeholder/400/300"
-    },
-    {
-      id: "6",
-      title: "Organic Farm Land",
-      location: "Nashik, Maharashtra",
-      category: "Agri Land",
-      minInvest: 15000,
-      targetRaise: 25000000,
-      raisedAmount: 18750000,
-      projectedYield: 9.2,
-      tenure: 30,
-      riskBand: "Medium",
-      status: "Open",
-      highlights: ["Certified Organic", "Water Access", "Grape Cultivation"],
-      image: "/api/placeholder/400/300"
-    }
-  ];
+  const property: Property = {
+    id: "1",
+    title: "BRILLIA",
+    location: "SG Highway, Ahmedabad",
+    category: "Commercial",
+    minInvest: 5000000,
+    targetRaise: 120000000,
+    raisedAmount: 75000000,
+    projectedYield: 10,
+    tenure: 36,
+    riskBand: "Medium",
+    status: "Open",
+    highlights: [
+      "Prime Location with excellent connectivity",
+      "Ample Parking for employees and visitors",
+      "Integrated Retail & Shopping Spaces",
+      "Green Spaces & Gardens",
+      "Designer Welcome Lounge",
+      "Modern Office Spaces"
+    ],
+    image: img1,
+  };
+
+  const filteredProperties = [property]; // Only BRILLIA
 
   // Compare functions
   const addToCompare = (property: Property) => {
@@ -195,23 +172,23 @@ const Properties = () => {
   };
 
   // Filter properties
-  const filteredProperties = mockProperties.filter((property) => {
-    if (
-      searchQuery &&
-      !property.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !property.location.toLowerCase().includes(searchQuery.toLowerCase())
-    ) return false;
+  // const filteredProperties = mockProperties.filter((property) => {
+  //   if (
+  //     searchQuery &&
+  //     !property.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+  //     !property.location.toLowerCase().includes(searchQuery.toLowerCase())
+  //   ) return false;
 
-    if (filters.categories.length > 0 && !filters.categories.includes(property.category)) return false;
-    if (property.minInvest < filters.ticketSizeRange[0] || property.minInvest > filters.ticketSizeRange[1])
-      return false;
-    if (property.projectedYield < filters.yieldRange[0] || property.projectedYield > filters.yieldRange[1])
-      return false;
-    if (filters.status.length > 0 && !filters.status.includes(property.status)) return false;
-    if (filters.riskBand.length > 0 && !filters.riskBand.includes(property.riskBand)) return false;
+  //   if (filters.categories.length > 0 && !filters.categories.includes(property.category)) return false;
+  //   if (property.minInvest < filters.ticketSizeRange[0] || property.minInvest > filters.ticketSizeRange[1])
+  //     return false;
+  //   if (property.projectedYield < filters.yieldRange[0] || property.projectedYield > filters.yieldRange[1])
+  //     return false;
+  //   if (filters.status.length > 0 && !filters.status.includes(property.status)) return false;
+  //   if (filters.riskBand.length > 0 && !filters.riskBand.includes(property.riskBand)) return false;
 
-    return true;
-  });
+  //   return true;
+  // });
 
   return (
     <div className="min-h-screen bg-background">

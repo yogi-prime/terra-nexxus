@@ -34,7 +34,7 @@ export const PropertiesHero = () => {
           </h1>
           <p className="text-lg md:text-xl text-card-premium-foreground/80 max-w-4xl mx-auto">
             Discover Residential, Commercial, Farmhouses, Agri Land, Plots & Industrial assets
-            starting from <span className="text-accent font-semibold">₹10,000</span>.
+            starting from <span className="text-accent font-semibold">minimal investment</span>.
           </p>
         </div>
 

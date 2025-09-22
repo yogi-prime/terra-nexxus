@@ -4,34 +4,41 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Calculator, TrendingUp, Shield, Users } from 'lucide-react';
+import { Calculator, TrendingUp, Shield } from 'lucide-react';
+import InvestmentModal from '@/components/property/InvestmentModal';
 
 interface PropertySidebarProps {
-  property: any;
+  property: {
+    minInvestment: number;
+    projectedYield: number;
+    raisedSoFar: number;
+    targetRaise: number;
+    title?: string;
+    riskBand?: string;
+  };
 }
 
 const PropertySidebar = ({ property }: PropertySidebarProps) => {
   const [investmentAmount, setInvestmentAmount] = useState('');
-  
-  const fundingProgress = (property.raisedSoFar / property.targetRaise) * 100;
-  const investorCount = Math.floor(property.raisedSoFar / property.minInvestment * 1.2);
-  
-  const calculateOwnership = () => {
-    const amount = parseFloat(investmentAmount) || 0;
-    return ((amount / property.targetRaise) * 100).toFixed(4);
-  };
-  
-  const calculateMonthlyPayout = () => {
-    const amount = parseFloat(investmentAmount) || 0;
-    const ownership = amount / property.targetRaise;
-    const annualYield = amount * (property.projectedYield / 100);
-    return (annualYield / 12).toFixed(0);
-  };
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const fundingProgress = Math.floor((property.raisedSoFar / property.targetRaise) * 100);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
     return `₹${amount.toLocaleString()}`;
+  };
+
+  const calculateOwnership = () => {
+    if (!investmentAmount) return 0;
+    return ((parseFloat(investmentAmount) / property.targetRaise) * 100).toFixed(2);
+  };
+
+  const calculateMonthlyPayout = () => {
+    if (!investmentAmount) return 0;
+    const totalReturn = parseFloat(investmentAmount) * (property.projectedYield / 100) * 3; // 3 years
+    return Math.round(totalReturn / (3 * 12)); // Monthly payout
   };
 
   return (
@@ -46,14 +53,10 @@ const PropertySidebar = ({ property }: PropertySidebarProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center">
-            <p className="text-3xl font-bold text-foreground mb-1">
-              {fundingProgress.toFixed(1)}%
-            </p>
+            <p className="text-3xl font-bold text-foreground mb-1">{fundingProgress}%</p>
             <p className="text-sm text-muted-foreground">Complete</p>
           </div>
-          
           <Progress value={fundingProgress} className="h-3" />
-          
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Raised</span>
@@ -64,11 +67,8 @@ const PropertySidebar = ({ property }: PropertySidebarProps) => {
               <span className="font-medium">{formatCurrency(property.targetRaise)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Investors</span>
-              <span className="font-medium flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {investorCount.toLocaleString()}
-              </span>
+              <span className="text-muted-foreground">Minimum Investment</span>
+              <span className="font-medium">{formatCurrency(property.minInvestment)}</span>
             </div>
           </div>
         </CardContent>
@@ -89,13 +89,20 @@ const PropertySidebar = ({ property }: PropertySidebarProps) => {
             </label>
             <Input
               type="number"
-              placeholder="50,000"
+              placeholder={formatCurrency(property.minInvestment)}
               value={investmentAmount}
               onChange={(e) => setInvestmentAmount(e.target.value)}
               className="text-lg"
             />
           </div>
-          
+
+          {investmentAmount && parseFloat(investmentAmount) < property.minInvestment && (
+            <p className="text-sm text-destructive">
+              Minimum investment is {formatCurrency(property.minInvestment)}
+            </p>
+          )}
+
+          {/* Calculated Results */}
           {investmentAmount && parseFloat(investmentAmount) >= property.minInvestment && (
             <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
               <div className="flex justify-between">
@@ -109,44 +116,29 @@ const PropertySidebar = ({ property }: PropertySidebarProps) => {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Total Return (3Y)</span>
                 <span className="text-sm font-medium text-success">
-                  ₹{((parseFloat(investmentAmount) || 0) * (1 + property.projectedYield/100 * 3)).toFixed(0)}
+                  ₹{((parseFloat(investmentAmount) || 0) * (1 + (property.projectedYield / 100) * 3)).toFixed(0)}
                 </span>
               </div>
             </div>
           )}
-          
-          {investmentAmount && parseFloat(investmentAmount) < property.minInvestment && (
-            <p className="text-sm text-destructive">
-              Minimum investment is {formatCurrency(property.minInvestment)}
-            </p>
-          )}
-          
-          <Button className="w-full" size="lg">
+
+          {/* Invest Now Button */}
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => setModalOpen(true)}
+            disabled={!investmentAmount || parseFloat(investmentAmount) < property.minInvestment} // optional: disable if invalid
+          >
             Invest Now
           </Button>
-        </CardContent>
-      </Card>
 
-      {/* Yield Projection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Yield Projection</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Year 1</span>
-              <span className="text-sm font-medium text-success">8.5%</span>
-            </div>
-            <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Year 3</span>
-              <span className="text-sm font-medium text-success">12.5%</span>
-            </div>
-            <div className="flex justify-between p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Year 5</span>
-              <span className="text-sm font-medium text-success">15.2%</span>
-            </div>
-          </div>
+          {/* Investment Modal */}
+          <InvestmentModal
+            property={property}
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            initialAmount={investmentAmount} // ✅ Pass the calculator value
+          />
         </CardContent>
       </Card>
 
@@ -160,7 +152,7 @@ const PropertySidebar = ({ property }: PropertySidebarProps) => {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Investments are subject to market risks. Past performance is not indicative of future results. 
+            Investments are subject to market risks. Past performance is not indicative of future results.
             Please read all documents carefully before investing.
           </p>
           <Badge variant="outline" className="mt-2 text-xs">

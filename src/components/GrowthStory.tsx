@@ -195,7 +195,7 @@ export const GrowthStory = () => {
               <h3 className="text-3xl font-bold mb-4">Vision 2030</h3>
               <p className="text-xl mb-6 opacity-90">
                 "To democratize real estate investing and make property ownership accessible to every Indian, 
-                starting with just ₹1000."
+                Take your first step with a minimal investment."
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Badge variant="outline" className="bg-white/10 text-white border-white/20 px-4 py-2">

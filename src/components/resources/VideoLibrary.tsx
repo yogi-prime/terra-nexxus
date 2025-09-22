@@ -319,7 +319,7 @@ export const VideoLibrary = () => {
               <h3 className="text-2xl font-bold mb-4">Subscribe to Our YouTube Channel</h3>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
                 Get notified about new tutorials, property walkthroughs, and expert interviews. 
-                Join 25,000+ subscribers learning about fractional real estate.
+                Join thousands of subscribers learning about fractional real estate.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="default" size="lg" className="bg-red-500 hover:bg-red-600">

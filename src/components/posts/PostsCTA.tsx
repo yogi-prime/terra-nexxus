@@ -46,7 +46,7 @@ export const PostsCTA = () => {
           
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Get the latest market insights, investment guides, and success stories delivered to your inbox. 
-            Join 25,000+ smart investors who stay informed.
+            Join thousands of smart investors who stay informed.
           </p>
           
           {/* Newsletter Signup */}

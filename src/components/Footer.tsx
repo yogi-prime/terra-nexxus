@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 const companyLinks = [
-  { name: "About Us", href: "#about" },
+  { name: "About Us", href: "/about" },
   { name: "How It Works", href: "#how-it-works" },
   { name: "Our Team", href: "#team" },
   { name: "Careers", href: "#careers" },
@@ -24,7 +24,7 @@ const companyLinks = [
 ];
 
 const investorLinks = [
-  { name: "Browse Properties", href: "#properties" },
+  { name: "Browse Properties", href: "/properties" },
   { name: "Investment Calculator", href: "#calculator" },
   { name: "Portfolio Tracker", href: "#portfolio" },
   { name: "Secondary Market", href: "#marketplace" },
@@ -100,7 +100,7 @@ export const Footer = () => {
             
             <p className="text-card-premium-foreground/80 mb-6 leading-relaxed">
               India's leading fractional real estate investment platform. Start owning properties 
-              with just ₹10,000 and build wealth through diversified real estate investments.
+              with minimal amount and build wealth through diversified real estate investments.
             </p>
 
             {/* Contact Info */}

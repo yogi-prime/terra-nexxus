@@ -12,7 +12,7 @@ const propositions = [
   {
     icon: Wallet,
     title: "Accessibility",
-    subtitle: "Start from ₹10K",
+    subtitle: "Start from Small amount",
     description: "No need for lakhs of rupees. Build your real estate portfolio gradually with small investments across premium properties.",
     color: "text-primary",
     bgColor: "from-primary/10 to-primary/5"
@@ -134,7 +134,7 @@ export const ValueProposition = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-background/50 rounded">
                   <span className="text-sm">Minimum Investment</span>
-                  <span className="font-bold text-success">₹10,000</span>
+                  <span className="font-bold text-success">Entry-level</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-background/50 rounded">
                   <span className="text-sm">Property Types</span>
@@ -160,7 +160,7 @@ export const ValueProposition = () => {
             <TrendingUp className="h-12 w-12 mx-auto mb-4 text-primary" />
             <h4 className="text-xl font-bold mb-2">The Result?</h4>
             <p className="text-lg text-muted-foreground">
-              15,000+ investors have built diversified real estate portfolios worth ₹1,200+ Cr with Terra Nexxus
+              A growing community of investors has created diversified real estate portfolios with Terra Nexxus.
             </p>
           </div>
         </div>

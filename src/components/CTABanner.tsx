@@ -49,10 +49,10 @@ export const CTABanner = () => {
             <div className="mb-8">
               <Badge variant="outline" className="bg-white/10 text-white border-white/20 mb-4">
                 <Users className="h-3 w-3 mr-1" />
-                15,000+ Investors Trust Us
+                Countless investors Trust Us
               </Badge>
               <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Start with just <span className="text-accent">₹10,000</span> today
+                Start with a <span className="text-accent">minimal investment</span> today
               </h2>
               <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
                 Join India's fastest growing fractional real estate platform. 
@@ -66,7 +66,7 @@ export const CTABanner = () => {
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
                 <DollarSign className="h-10 w-10 text-accent mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-white mb-2">Low Entry</h3>
-                <p className="text-white/80 text-sm">Start investing with just ₹10,000 minimum</p>
+                <p className="text-white/80 text-sm">Start investing with minimal investment</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
                 <TrendingUp className="h-10 w-10 text-accent mx-auto mb-3" />
@@ -95,6 +95,7 @@ export const CTABanner = () => {
                 variant="outline" 
                 size="xl" 
                 className="text-lg px-8 py-4 h-auto border-white/30 text-black hover:bg-white/10 hover:text-white"
+                onClick={() => navigate("/properties")}
               >
                 Browse Properties
               </Button>
@@ -134,8 +135,8 @@ export const CTABanner = () => {
                     <span className="text-white font-bold">TN</span>
                   </div>
                   <div>
-                    <p className="font-bold text-card-premium-foreground">Start with ₹10,000 today</p>
-                    <p className="text-sm text-card-premium-foreground/70">Join 15,000+ smart investors</p>
+                    <p className="font-bold text-card-premium-foreground">Start with minimal investment today</p>
+                    <p className="text-sm text-card-premium-foreground/70">Join ever-growing smart investors</p>
                   </div>
                 </div>
                 

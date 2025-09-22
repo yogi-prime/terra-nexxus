@@ -17,7 +17,7 @@ const features = [
   {
     icon: Wallet,
     title: "Low Entry Barrier",
-    description: "Start with just ₹10,000",
+    description: "Start with minimal investment",
     details: "No need for lakhs of rupees. Build your real estate portfolio gradually with small investments.",
     color: "text-primary"
   },
@@ -60,7 +60,7 @@ const features = [
 
 const comparison = [
   { option: "Avg Annual Return", stocks: "7–10%", bonds: "2–5%", gold: "5–7%", realEstate: "8–12%" },
-  { option: "Initial Investment", stocks: "Low–Medium", bonds: "Medium", gold: "Medium", realEstate: "Low (₹10,000)" },
+  { option: "Initial Investment", stocks: "Low–Medium", bonds: "Medium", gold: "Medium", realEstate: "Low" },
   { option: "Monthly Income", stocks: "❌", bonds: "❌", gold: "❌", realEstate: "✅ Earn Rent" },
   { option: "Market Volatility", stocks: "High", bonds: "Low", gold: "Medium", realEstate: "Low" },
   { option: "Inflation Protection", stocks: "Low", bonds: "Low", gold: "High", realEstate: "✅ Protects Against Inflation" },

@@ -11,92 +11,101 @@ import PropertyOwnership from '@/components/property/PropertyOwnership';
 import PropertyLocation from '@/components/property/PropertyLocation';
 import PropertyFAQs from '@/components/property/PropertyFAQs';
 import PropertyUpdates from '@/components/property/PropertyUpdates';
-import RelatedProperties from '@/components/property/RelatedProperties';
 import PropertyCTA from '@/components/property/PropertyCTA';
 
-// Mock property data - in real app, this would come from API
-const mockProperty = {
+import img1 from "@/assets/1.jpg";
+import img6 from "@/assets/6.jpg";
+import img11 from "@/assets/11.jpg";
+
+// BRILLIA property data
+const brilliaProperty = {
   id: '1',
-  title: 'Premium Commercial Tower - Cyber City',
-  location: 'Sector 24, Gurugram, Haryana',
-  category: 'Commercial Tower',
-  images: [
-    '/placeholder.svg',
-    '/placeholder.svg',
-    '/placeholder.svg',
-    '/placeholder.svg'
-  ],
-  video: '/placeholder.svg',
-  minInvestment: 50000,
-  targetRaise: 50000000,
-  raisedSoFar: 22000000,
-  projectedYield: 12.5,
+  title: 'BRILLIA - Pravish',
+  location: 'SG Highway, Ahmedabad',
+  category: 'Commercial',
+  images: [img1, img6, img11], // PropertyHero uses this
+  minInvestment: 5000000,
+  targetRaise: 120000000,
+  raisedSoFar: 75000000,
+  projectedYield: 10,
   tenure: '36 months',
-  riskBand: 'Moderate',
-  description: 'Premium Grade-A commercial tower in the heart of Cyber City with Fortune 500 tenants and 15-year lease agreements.',
+  riskBand: 'Medium',
+  description:
+    'BRILLIA is a premium commercial property located on SG Highway, Ahmedabad, offering modern office spaces, integrated retail, green areas, and ample parking.',
   highlights: [
-    'Grade-A tenant with AAA credit rating',
-    'Prime Cyber City location',
-    '15-year triple net lease',
-    'Escrow protected investment'
+    'Prime Location with excellent connectivity',
+    'Ample Parking for employees and visitors',
+    'Integrated Retail & Shopping Spaces',
+    'Green Spaces & Gardens',
+    'Designer Welcome Lounge',
+    'Modern Office Spaces',
   ],
   financials: {
-    capRate: 9.2,
-    rentPsf: 85,
+    capRate: 8.5,
+    rentPsf: 80,
     vacancy: 5,
-    oAndM: 8,
+    oAndM: 7,
     managementFee: 2,
-    exitCapRate: 8.5
+    exitCapRate: 8,
   },
   documents: [
     { name: 'Title Deed', type: 'pdf', size: '2.1 MB' },
     { name: 'NOCs & Approvals', type: 'pdf', size: '1.8 MB' },
     { name: 'Valuation Report', type: 'pdf', size: '3.2 MB' },
-    { name: 'Lease Agreement', type: 'pdf', size: '1.5 MB' }
+    { name: 'Lease Agreement', type: 'pdf', size: '1.5 MB' },
   ],
-  coordinates: { lat: 28.4595, lng: 77.0266 },
+  coordinates: { lat: 23.0338, lng: 72.5850 },
   nearbyAmenities: [
-    { name: 'IGI Airport', distance: '12 km' },
-    { name: 'Cyber City Metro', distance: '500 m' },
-    { name: 'Ambience Mall', distance: '2 km' },
-    { name: 'Top Schools', distance: '3 km' }
-  ]
+    { name: 'SG Highway Metro', distance: '500 m' },
+    { name: 'Cafes & Restaurants', distance: '200 m' },
+    { name: 'Shopping Centers', distance: '1 km' },
+    { name: 'Schools', distance: '2 km' },
+  ],
 };
+
 
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
 
+  // Only BRILLIA exists
+  if (id !== brilliaProperty.id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg text-muted-foreground">Property not found.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-20">
-        <PropertyHero property={mockProperty} />
-        
+        <PropertyHero property={brilliaProperty} />
+
         <div className="container mx-auto px-4 py-8">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-12">
-              <PropertyOverview property={mockProperty} />
-              <PropertyFinancials property={mockProperty} />
-              <PropertyLegal property={mockProperty} />
-              <PropertyOwnership property={mockProperty} />
-              <PropertyLocation property={mockProperty} />
+              <PropertyOverview property={brilliaProperty} />
+              <PropertyFinancials property={brilliaProperty} />
+              <PropertyLegal property={brilliaProperty} />
+              <PropertyOwnership property={brilliaProperty} />
+              <PropertyLocation property={brilliaProperty} />
               <PropertyFAQs />
               <PropertyUpdates />
-              <RelatedProperties />
             </div>
-            
+
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <PropertySidebar property={mockProperty} />
+              <PropertySidebar property={brilliaProperty} />
             </div>
           </div>
         </div>
-        
-        <PropertyCTA property={mockProperty} />
+
+        <PropertyCTA property={brilliaProperty} />
       </main>
-      
+
       <Footer />
     </div>
   );

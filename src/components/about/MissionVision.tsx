@@ -38,7 +38,7 @@ export const MissionVision = () => {
                   <h3 className="text-2xl font-bold">Our Mission</h3>
                 </div>
                 <p className="text-lg leading-relaxed text-muted-foreground">
-                  To democratize real estate investing by making premium properties accessible with investments starting from just ₹10,000, powered by legal ownership structures and transparent technology.
+                  To democratize real estate investing by making premium properties accessible with investments starting from just minimal investment, powered by legal ownership structures and transparent technology.
                 </p>
               </CardContent>
             </Card>
@@ -57,7 +57,7 @@ export const MissionVision = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-background rounded-lg">
                     <span className="font-medium">Minimum Investment</span>
-                    <span className="text-primary font-bold">₹10,000</span>
+                    <span className="text-primary font-bold">Small amount</span>
                   </div>
                   <div className="flex items-center justify-between p-4 bg-background rounded-lg">
                     <span className="font-medium">Property Categories</span>
