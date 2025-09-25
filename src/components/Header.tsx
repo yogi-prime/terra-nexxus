@@ -18,11 +18,11 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { name: "Terra Share", href: "/terrashare" },
   { name: "Properties", href: "/properties" },
   { name: "About", href: "/about" },
   { name: "Resources", href: "/resources" },
   { name: "Posts", href: "/posts" },
-  { name: "Marketplace", href: "/marketplace" },
 ];
 
 const quickLinks = [

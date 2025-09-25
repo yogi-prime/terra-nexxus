@@ -29,7 +29,7 @@ const tickerData = [
 
 export const MarketTicker = () => {
   return (
-    <div className="hidden-custom bg-card-premium text-card-premium-foreground border-b border-border-dark overflow-hidden">
+    <div className="w-full bg-card-premium text-card-premium-foreground border-b border-border-dark overflow-hidden">
       <div className="py-3">
         <div className="animate-ticker flex gap-12 whitespace-nowrap">
           {/* Repeat ticker items for seamless loop */}
