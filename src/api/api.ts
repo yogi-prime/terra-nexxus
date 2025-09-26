@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // Use your live URL directly
-const API_BASE = import.meta.env.VITE_API_BASE || `http://app.terranexxus.com/`;
+// const API_BASE = import.meta.env.VITE_API_BASE || `http://app.terranexxus.com/`;
+const API_BASE = (import.meta.env.VITE_API_BASE || "https://app.terranexxus.com").replace(/\/+$/,'');
 
 const API = axios.create({
   baseURL: `${API_BASE}/api`,
