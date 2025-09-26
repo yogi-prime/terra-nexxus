@@ -74,7 +74,7 @@ export const WhyTerraNexxus = () => {
         
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Why Choose Terra Nexxus?</h2>
+          <h2 className="text-4xl font-bold mb-4">Why Choose Part Ownership?</h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             We're revolutionizing real estate investing with technology, transparency, and trust
           </p>
@@ -170,7 +170,7 @@ export const WhyTerraNexxus = () => {
             </Card>
 
             {/* Real Estate */}
-            <Card className="rounded-2xl shadow-2xl transform hover:scale-105 transition-all border-2 border-primary bg-gradient-to-br from-primary/10 to-white">
+            <Card className="rounded-2xl shadow-2xl transform hover:scale-105 transition-all transform hover:-translate-y-2 border-2 border-primary bg-gradient-to-br from-primary/10 to-white">
               <CardHeader>
                 <CardTitle className="text-center text-lg text-primary font-bold flex items-center justify-center gap-2">
                   <Home className="w-5 h-5 text-primary" /> Real Estate <Badge variant="secondary">Best Choice</Badge>

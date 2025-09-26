@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Users, Shield, Clock } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import InvestmentModal from '@/components/property/InvestmentModal';
 
 interface PropertyCTAProps {
   property: {
@@ -9,10 +11,15 @@ interface PropertyCTAProps {
     minInvestment: number;
     projectedYield: number;
     targetRaise: number;
+    title?: string;
   };
 }
 
 const PropertyCTA = ({ property }: PropertyCTAProps) => {
+  const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [investmentAmount, setInvestmentAmount] = useState(property.minInvestment);
+
   const formatCurrency = (amount: number) => {
     if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
@@ -26,12 +33,13 @@ const PropertyCTA = ({ property }: PropertyCTAProps) => {
     <section className="bg-gradient-to-r from-primary/10 via-background to-accent/10 border-t border-border">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center space-y-8">
+          {/* Heading */}
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Invest Today from small amount
           </h2>
           <p className="text-lg text-muted-foreground">
             Join thousands of investors building wealth through fractional real estate. 
-              Start your property investment journey with Terra Nexxus.
+            Start your property investment journey with Terra Nexxus.
           </p>
 
           {/* Stats */}
@@ -95,10 +103,15 @@ const PropertyCTA = ({ property }: PropertyCTAProps) => {
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="min-w-48">
+            <Button size="lg" className="min-w-48" onClick={() => navigate("/register")}>
               Start KYC Process
             </Button>
-            <Button variant="outline" size="lg" className="min-w-48">
+            <Button
+              variant="outline"
+              size="lg"
+              className="min-w-48"
+              onClick={() => setModalOpen(true)} // Open modal
+            >
               Invest Now
             </Button>
           </div>
@@ -112,6 +125,17 @@ const PropertyCTA = ({ property }: PropertyCTAProps) => {
           </div>
         </div>
       </div>
+
+      {/* Investment Modal */}
+      <InvestmentModal
+        property={{
+          minInvestment: property.minInvestment,
+          title: property.title || "Real Estate Investment"
+        }}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialAmount={String(investmentAmount)}
+      />
     </section>
   );
 };

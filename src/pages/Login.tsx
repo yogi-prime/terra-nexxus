@@ -90,6 +90,7 @@ const handleSendOTP = async () => {
 const { login } = useAuth();
 
 // ✅ Verify OTP
+// ✅ Verify OTP
 const handleVerifyOTP = async () => {
   if (formData.otp.length !== 6) {
     toast({ variant: "destructive", description: "Please enter complete OTP" });
@@ -107,7 +108,17 @@ const handleVerifyOTP = async () => {
     login(data.token, data.user);
 
     toast({ description: "Login successful! Redirecting..." });
-    navigate("/investor/1");
+
+    // ✅ Role-based redirect
+    if (data.user.role === "admin") {
+      navigate("/admin/dashboard");
+    } else if (data.user.role === "investor") {
+      navigate(`/investor/${data.user.id}`);
+    } else if (data.user.role === "dealer") {
+      navigate(`/dealer/${data.user.id}`);
+    } else {
+      navigate("/"); // fallback
+    }
 
   } catch (err: any) {
     toast({
@@ -118,6 +129,7 @@ const handleVerifyOTP = async () => {
     setIsLoading(false);
   }
 };
+
 
 // ✅ Resend OTP
 const handleResendOTP = async () => {

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronLeft, ChevronRight, Star, Quote, TrendingUp, MapPin } from "lucide-react";
+import InvestmentModal from "@/components/property/InvestmentModal";
 
 const testimonials = [
   {
@@ -100,6 +101,10 @@ const successStories = [
 
 export const Testimonials = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+
+  // modal state for Start Investing button
+  const [modalOpen, setModalOpen] = useState(false);
+  const [investmentAmount, setInvestmentAmount] = useState(50000); // default amount
 
   const nextTestimonial = () => {
     setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
@@ -256,7 +261,11 @@ export const Testimonials = () => {
               <CardContent className="p-6 text-center">
                 <h4 className="text-lg font-bold mb-2">Join thousands of Happy Investors</h4>
                 <p className="text-white/90 mb-4">Start your real estate investment journey today</p>
-                <Button variant="premium" className="bg-white text-primary hover:bg-white/90">
+                <Button
+                  variant="premium"
+                  className="bg-white text-primary hover:bg-white/90"
+                  onClick={() => setModalOpen(true)} // open modal
+                >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Start Investing
                 </Button>
@@ -265,6 +274,13 @@ export const Testimonials = () => {
           </div>
         </div>
       </div>
+      {/* Investment Modal */}
+      <InvestmentModal
+        property={{ minInvestment: 5000000, title: "Real Estate Investment" }}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialAmount={String(investmentAmount)}
+      />
     </section>
   );
 };

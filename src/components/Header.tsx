@@ -23,6 +23,7 @@ const navItems = [
   { name: "About", href: "/about" },
   { name: "Resources", href: "/resources" },
   { name: "Posts", href: "/posts" },
+  { name: "Marketplace", href: "/marketplace" },
 ];
 
 const quickLinks = [

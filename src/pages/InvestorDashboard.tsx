@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, User, TrendingUp, PieChart, FileText } from "lucide-react";
-
 const InvestorDashboard = () => {
   const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border">
@@ -34,7 +32,6 @@ const InvestorDashboard = () => {
           </div>
         </div>
       </div>
-
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Portfolio Overview */}
@@ -48,7 +45,6 @@ const InvestorDashboard = () => {
               <div className="text-sm text-muted-foreground">Complete KYC to start investing</div>
             </div>
           </Card>
-
           {/* Investment Analytics */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -60,7 +56,6 @@ const InvestorDashboard = () => {
               <div className="text-sm text-muted-foreground">Properties in portfolio</div>
             </div>
           </Card>
-
           {/* KYC Status */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -75,7 +70,6 @@ const InvestorDashboard = () => {
             </div>
           </Card>
         </div>
-
         {/* Quick Actions */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
@@ -113,7 +107,6 @@ const InvestorDashboard = () => {
             </Button>
           </div>
         </div>
-
         {/* Demo Notice */}
         <div className="mt-8 p-6 bg-accent/20 rounded-lg border border-accent/30">
           <h3 className="font-semibold mb-2">Demo Dashboard</h3>
@@ -122,15 +115,15 @@ const InvestorDashboard = () => {
             portfolio performance, investment history, document management, and personalized recommendations.
           </p>
           <div className="flex gap-3 mt-4">
-            <Button 
-              variant="premium" 
+            <Button
+              variant="premium"
               size="sm"
               onClick={() => navigate("/properties")}
             >
               Explore Properties
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => navigate("/")}
             >
@@ -142,5 +135,4 @@ const InvestorDashboard = () => {
     </div>
   );
 };
-
 export default InvestorDashboard;

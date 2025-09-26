@@ -5,12 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, TrendingUp, PiggyBank, Banknote } from "lucide-react";
+import InvestmentModal from "@/components/property/InvestmentModal";
 
 export const ROICalculator = () => {
   const [amount, setAmount] = useState(50000);
   const [years, setYears] = useState(5);
   const [cagr, setCagr] = useState(12.4);
   const [futureValue, setFutureValue] = useState(0);
+
+  // modal state
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const fv = amount * Math.pow(1 + cagr / 100, years);
@@ -22,16 +26,16 @@ export const ROICalculator = () => {
 
   const growthData = Array.from({ length: years + 1 }, (_, i) => ({
     year: i,
-    value: amount * Math.pow(1 + cagr / 100, i)
+    value: amount * Math.pow(1 + cagr / 100, i),
   }));
 
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">Future Value Calculator</h2>
+          <h2 className="text-4xl font-bold text-primary mb-4">Future Value Calculator</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            See how your investment grows with Terra Nexxus compared to traditional options
+            See how your investment grows with real estate compared to traditional options
           </p>
         </div>
 
@@ -59,12 +63,10 @@ export const ROICalculator = () => {
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
                     className="mt-1"
-                    min="10000"
+                    min="5000000"
                     step="10000"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Minimum: ₹10,000
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Minimum: ₹50,00,000</p>
                 </div>
 
                 <div>
@@ -96,9 +98,7 @@ export const ROICalculator = () => {
                     max="25"
                     step="0.1"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Platform average: 12.4%
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Platform average: 12.4%</p>
                 </div>
               </div>
 
@@ -107,15 +107,21 @@ export const ROICalculator = () => {
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Future Value</p>
                   <p className="text-3xl font-bold text-primary">
-                    ₹{futureValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    ₹{futureValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </p>
                   <p className="text-sm text-success">
-                    +₹{(futureValue - amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })} gains
+                    +₹{(futureValue - amount).toLocaleString("en-IN", { maximumFractionDigits: 0 })} gains
                   </p>
                 </div>
               </div>
 
-              <Button variant="hero" className="w-full">
+              {/* Start Investing */}
+              <Button
+                variant="hero"
+                className="w-full"
+                onClick={() => setModalOpen(true)}
+                disabled={amount < 5000000}
+              >
                 Start Investing Now
               </Button>
             </CardContent>
@@ -128,21 +134,19 @@ export const ROICalculator = () => {
                 <TrendingUp className="h-5 w-5 text-success" />
                 Growth Projection
               </CardTitle>
-              <CardDescription>
-                Your investment growth over {years} years
-              </CardDescription>
+              <CardDescription>Your investment growth over {years} years</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Growth Chart */}
               <div className="h-48 flex items-end justify-between gap-1 px-2">
-                {growthData.map((data, index) => (
+                {growthData.map((data) => (
                   <div key={data.year} className="flex-1 flex flex-col items-center gap-1">
-                    <div 
+                    <div
                       className="w-full gradient-primary rounded-t-sm transition-all hover:opacity-80 cursor-pointer group relative"
                       style={{ height: `${(data.value / futureValue) * 160}px` }}
                     >
                       <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-card-premium text-card-premium-foreground text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        ₹{data.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{data.value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <span className="text-xs text-muted-foreground">Y{data.year}</span>
@@ -153,18 +157,21 @@ export const ROICalculator = () => {
               {/* Comparison */}
               <div className="space-y-3">
                 <h4 className="font-semibold">Compare with alternatives:</h4>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                     <div className="flex items-center gap-2">
                       <PiggyBank className="h-4 w-4 text-primary" />
-                      <span className="font-medium">Terra Nexxus</span>
+                      <span className="font-medium">Real Estate</span>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-primary">
-                        ₹{futureValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{futureValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                       </div>
-                      <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
+                      <Badge
+                        variant="outline"
+                        className="bg-success/10 text-success border-success/20 text-xs"
+                      >
                         {cagr}% CAGR
                       </Badge>
                     </div>
@@ -177,11 +184,9 @@ export const ROICalculator = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-muted-foreground">
-                        ₹{fdReturns.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{fdReturns.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        6.5% CAGR
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">6.5% CAGR</Badge>
                     </div>
                   </div>
 
@@ -192,18 +197,16 @@ export const ROICalculator = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-muted-foreground">
-                        ₹{mfReturns.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{mfReturns.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        10% CAGR
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">10% CAGR</Badge>
                     </div>
                   </div>
                 </div>
 
                 <div className="text-center pt-3 border-t border-border">
                   <p className="text-sm text-success font-medium">
-                    ₹{(futureValue - fdReturns).toLocaleString('en-IN', { maximumFractionDigits: 0 })} more than FD
+                    ₹{(futureValue - fdReturns).toLocaleString("en-IN", { maximumFractionDigits: 0 })} more than FD
                   </p>
                 </div>
               </div>
@@ -211,6 +214,14 @@ export const ROICalculator = () => {
           </Card>
         </div>
       </div>
+
+      {/* Modal */}
+      <InvestmentModal
+        property={{ minInvestment: 5000000, title: "Real Estate Investment" }}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialAmount={String(amount)}
+      />
     </section>
   );
 };

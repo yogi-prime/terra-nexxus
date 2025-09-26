@@ -248,26 +248,26 @@ const Register = () => {
       return;
     }
     const ok = await verifyOtpToBackend();
-    // if (ok) {
-    //   setCurrentStep(5);
-
-    //   // ✅ Redirect after OTP verified
-    //   setTimeout(() => {
-    //     if (formData.role === "investor") {
-    //       navigate(`/investor/${userId ?? ""}`);
-    //     } else {
-    //       navigate(`/dealer/${userId ?? ""}`);
-    //     }
-    //   }, 1400);
-    // }
     if (ok) {
-  setCurrentStep(5);
+      setCurrentStep(5);
 
-  // ✅ Redirect after OTP verified
-  setTimeout(() => {
-    navigate(`/investor/${userId ?? ""}`);
-  }, 1400);
-}
+      // ✅ Redirect after OTP verified
+      setTimeout(() => {
+        if (formData.role === "investor") {
+          navigate(`/investor/${userId ?? ""}`);
+        } else {
+          navigate(`/dealer/${userId ?? ""}`);
+        }
+      }, 1400);
+    }
+//     if (ok) {
+//   setCurrentStep(5);
+
+//   // ✅ Redirect after OTP verified
+//   setTimeout(() => {
+//     navigate(`/investor/${userId ?? ""}`);
+//   }, 1400);
+// }
     return;
   }
 

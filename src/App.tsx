@@ -14,6 +14,10 @@ import Register from "./pages/Register";
 import TerraShare from "./pages/TerraShare";
 import InvestorDashboard from "./pages/InvestorDashboard";
 import NotFound from "./pages/NotFound";
+import AddProperty from "./pages/AddProperty";
+import MarketPlace from "./pages/Marketplace";
+import MarketplacePropertyDetails from "./pages/MarketplacePropertyDetails";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +29,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/add-property" element={<AddProperty />} />
           <Route path="/terrashare" element={<TerraShare />} />
           <Route path="/properties" element={<Properties />} />
           <Route path="/property/:id" element={<PropertyDetail />} />
@@ -34,6 +40,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/investor/:id" element={<InvestorDashboard />} />
+          <Route path="/marketplace" element={<MarketPlace />} />
+          <Route path="/marketplace/property/:id" element={<MarketplacePropertyDetails />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
