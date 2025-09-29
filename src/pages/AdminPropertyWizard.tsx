@@ -96,18 +96,21 @@ function TextInput({
   placeholder,
   type = "text",
   min,
+  max,
 }: {
   value: any;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
   min?: number;
+  max?: number;
 }) {
   return (
     <input
       type={type}
       value={value ?? ""}
       min={min as any}
+      max={max as any}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-slate-300 focus:shadow-sm"
@@ -182,7 +185,8 @@ const SERVICE_OPTIONS = [
   { value: "rent", label: "Rent" },
   { value: "lease", label: "Lease" },
   { value: "mortgage", label: "Mortgage" },
-  { value: "buy", label: "Buy/Sale" },
+  { value: "resale", label: "Resale" },
+  { value: "new", label: "New Sale" },
 ];
 
 const PROPERTY_TYPES = [
@@ -243,10 +247,9 @@ const initialState: any = {
   longitude: "",
   google_map_link: "",
 
-  super_area_sqft: "",
-  carpet_area_sqft: "",
-  builtup_area_sqft: "",
-  plot_area_sqft: "",
+  // NEW: single size text (old granular sizes removed)
+  size_sqft_text: "",
+
   bedrooms: "",
   bathrooms: "",
   balconies: "",
@@ -257,6 +260,10 @@ const initialState: any = {
   facing: "",
   parking_open: "",
   parking_covered: "",
+
+  // Project meta
+  tower_count: "",
+  total_units: "",
 
   price_min: "",
   price_max: "",
@@ -284,6 +291,14 @@ const initialState: any = {
   gallery: [],
   video_url: "",
   virtual_tour_url: "",
+
+  // NEW media
+  brochure: null,
+  site_plan: null,
+  flat_plans: [],
+
+  nearby: [],       // <--- ADD THIS
+  extra_json: {},   // <--- for future proof extras
 
   meta_title: "",
   meta_description: "",
@@ -320,6 +335,7 @@ const steps = [
   { key: "amenities", title: "Amenities", icon: CheckCircle2 },
   { key: "legal", title: "Legal & Docs", icon: ShieldCheck },
   { key: "media", title: "Media", icon: Images },
+  { key: "nearby", title: "Nearby", icon: MapPin },   // <-- NEW STEP
   { key: "seo", title: "SEO", icon: Info },
   { key: "contact", title: "Contact", icon: Building2 },
   { key: "review", title: "Review & Submit", icon: CheckCircle2 },
@@ -331,7 +347,7 @@ export default function AdminPropertyWizardVertical() {
     const draft = localStorage.getItem("admin_prop_draft");
     if (!draft) return initialState;
     const saved = JSON.parse(draft);
-    return { ...initialState, ...saved, main_image: null, gallery: [], documents: [] };
+    return { ...initialState, ...saved, main_image: null, gallery: [], documents: [], brochure: null, site_plan: null, flat_plans: [] };
   });
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -345,7 +361,7 @@ export default function AdminPropertyWizardVertical() {
   const fe = (name: string) => errors?.[name] || serverErrors?.[name]?.[0] || "";
 
   useEffect(() => {
-    const { main_image, gallery, documents, ...rest } = data;
+    const { main_image, gallery, documents, brochure, site_plan, flat_plans, ...rest } = data;
     localStorage.setItem("admin_prop_draft", JSON.stringify(rest));
   }, [data, stepIndex]);
 
@@ -380,9 +396,10 @@ export default function AdminPropertyWizardVertical() {
       if (!data.address_line) e.address_line = "Address required";
     }
     if (current.key === "pricing") {
+      const isSale = data.service === "resale" || data.service === "new";
       if (data.service === "rent" && !data.price_actual && !data.expected_rent)
         e.price_actual = "Rent required";
-      if (data.service === "buy" && !data.price_min && !data.price_actual)
+      if (isSale && !data.price_min && !data.price_actual)
         e.price_min = "Min price or Actual required";
       if (data.service === "lease" && !data.price_min && !data.price_actual)
         e.price_min = "Min price or Actual required";
@@ -405,70 +422,75 @@ export default function AdminPropertyWizardVertical() {
     setErrors({});
   };
 
+
   // Smart appender for FormData (skip empty, cast booleans)
-  const appendSmart = (form: FormData, key: string, val: any) => {
-    if (val === undefined || val === null) return;
+const appendSmart = (form: FormData, key: string, val: any) => {
+  if (val === undefined || val === null) return;
 
-    const numericKeys = new Set([
-      "super_area_sqft",
-      "carpet_area_sqft",
-      "builtup_area_sqft",
-      "plot_area_sqft",
-      "bedrooms",
-      "bathrooms",
-      "balconies",
-      "parking_open",
-      "parking_covered",
-      "price_min",
-      "price_max",
-      "price_actual",
-      "price_per_sqft",
-      "expected_rent",
-      "security_deposit",
-      "maintenance_monthly",
-      "mortgage_amount",
-      "interest_rate",
-      "mortgage_tenure_months",
-      "lease_duration_months",
-    ]);
-    const booleanKeys = new Set([
-      "price_negotiable",
-      "noc_available",
-      "loan_available",
-      "occupancy_certificate",
-      "completion_certificate",
-      "pantry",
-      "washroom_inside",
-    ]);
+  const numericKeys = new Set([
+    "bedrooms","bathrooms","balconies","parking_open","parking_covered",
+    "price_min","price_max","price_actual","price_per_sqft","expected_rent",
+    "security_deposit","maintenance_monthly","mortgage_amount","interest_rate",
+    "mortgage_tenure_months","lease_duration_months","tower_count","total_units",
+    "hotel_room_count","dock_count","eaves_height_ft","floor_loading_ton",
+    "frontage_ft","depth_ft","workstations","cabins","conference_rooms",
+  ]);
+  const booleanKeys = new Set([
+    "price_negotiable","noc_available","loan_available","occupancy_certificate",
+    "completion_certificate","pantry","washroom_inside",
+  ]);
 
-    if (numericKeys.has(key)) {
-      if (val === "" || Number.isNaN(Number(val))) return;
-      form.append(key, String(val));
-      return;
-    }
-    if (booleanKeys.has(key)) {
-      form.append(key, val ? "1" : "0");
-      return;
-    }
-    if (key === "main_image") {
-      if (val) form.append("main_image", val as File);
-      return;
-    }
-    if (key === "amenities" && Array.isArray(val)) {
-      val.forEach((a: string, i: number) => form.append(`amenities[${i}]`, a));
-      return;
-    }
-    if (key === "gallery" && Array.isArray(val)) {
-      val.forEach((f: File, i: number) => f && form.append(`gallery[${i}]`, f));
-      return;
-    }
-    if (key === "documents" && Array.isArray(val)) {
-      val.forEach((f: File, i: number) => f && form.append(`documents[${i}]`, f));
-      return;
-    }
-    if (typeof val === "string" && val.trim() === "") return;
-    form.append(key, val as any);
-  };
+  if (numericKeys.has(key)) {
+    if (val === "" || Number.isNaN(Number(val))) return;
+    form.append(key, String(val));
+    return;
+  }
+  if (booleanKeys.has(key)) {
+    form.append(key, val ? "1" : "0");
+    return;
+  }
+
+  // files
+  if (key === "main_image") { if (val) form.append("main_image", val as File); return; }
+  if (key === "brochure")   { if (val) form.append("brochure",   val as File); return; }
+  if (key === "site_plan")  { if (val) form.append("site_plan",  val as File); return; }
+
+  // file arrays
+  if (key === "gallery" && Array.isArray(val))  { val.forEach((f: File, i: number) => f && form.append(`gallery[${i}]`, f)); return; }
+  if (key === "documents" && Array.isArray(val)){ val.forEach((f: File, i: number) => f && form.append(`documents[${i}]`, f)); return; }
+  if (key === "flat_plans" && Array.isArray(val)){ val.forEach((f: File, i: number) => f && form.append(`flat_plans[${i}]`, f)); return; }
+
+ // 1) amenities: array of strings -> amenities[0], amenities[1]...
+if (key === "amenities" && Array.isArray(val)) {
+  if (val.length) val.forEach((a: string, i: number) => form.append(`amenities[${i}]`, a));
+  return;
+}
+
+// 2) nearby: array of objects -> nearby[0][title], nearby[0][description], nearby[0][distance]...
+if (key === "nearby" && Array.isArray(val)) {
+  val.forEach((item: any, i: number) => {
+    if (item?.title !== undefined)       form.append(`nearby[${i}][title]`, String(item.title));
+    if (item?.description !== undefined) form.append(`nearby[${i}][description]`, String(item.description));
+    if (item?.distance !== undefined && item.distance !== "")
+      form.append(`nearby[${i}][distance]`, String(item.distance));
+    // agar aage "type" add karna ho:
+    if (item?.type !== undefined)        form.append(`nearby[${i}][type]`, String(item.type));
+  });
+  return;
+}
+
+// 3) extra_json: object -> extra_json[key]=value (flat)
+if (key === "extra_json" && typeof val === "object" && val) {
+  Object.entries(val).forEach(([k, v]: any) => {
+    if (v !== undefined && v !== null && String(v).trim() !== "")
+      form.append(`extra_json[${k}]`, String(v));
+  });
+  return;
+}
+  if (typeof val === "string" && val.trim() === "") return;
+  form.append(key, val as any);
+};
+
 
   const submitForm = async () => {
     setServerErrors({});
@@ -500,35 +522,59 @@ export default function AdminPropertyWizardVertical() {
         setServerErrors(body.errors);
         const firstKey = Object.keys(body.errors)[0];
         const stepForField: Record<string, number> = {
-          service: 0,
-          property_type: 0,
-          title: 1,
-          description: 1,
-          city: 2,
-          address_line: 2,
-          super_area_sqft: 3,
-          carpet_area_sqft: 3,
-          builtup_area_sqft: 3,
-          plot_area_sqft: 3,
-          bedrooms: 3,
-          bathrooms: 3,
-          balconies: 3,
-          parking_open: 3,
-          parking_covered: 3,
-          price_min: 4,
-          price_max: 4,
-          price_actual: 4,
-          expected_rent: 4,
-          mortgage_amount: 4,
-          interest_rate: 4,
-          mortgage_tenure_months: 4,
-          lease_duration_months: 4,
-          documents: 6,
-          main_image: 7,
-          gallery: 7,
-          owner_email: 9,
-          owner_phone: 9,
-        };
+  service: 0,
+  property_type: 0,
+  title: 1,
+  description: 1,
+  city: 2,
+  address_line: 2,
+
+  // size/meta
+  size_sqft_text: 3,
+  bedrooms: 3,
+  bathrooms: 3,
+  balconies: 3,
+  parking_open: 3,
+  parking_covered: 3,
+  tower_count: 3,
+  total_units: 3,
+
+  // pricing
+  price_min: 4,
+  price_max: 4,
+  price_actual: 4,
+  expected_rent: 4,
+  mortgage_amount: 4,
+  interest_rate: 4,
+  mortgage_tenure_months: 4,
+  lease_duration_months: 4,
+
+  // legal/media docs
+  documents: 6,
+  brochure: 6,
+  site_plan: 6,
+  flat_plans: 6,
+
+  // media images
+  main_image: 7,
+  gallery: 7,
+
+  // nearby
+  nearby: 8,
+
+  // seo
+  meta_title: 9,
+  meta_description: 9,
+
+  // contact
+  owner_email: 10,
+  owner_phone: 10,
+  owner_name: 10,
+  listed_by: 10,
+  available_from: 10,
+  status: 10,
+};
+
         if (firstKey in stepForField) setStepIndex(stepForField[firstKey]);
 
         setToast({
@@ -619,51 +665,58 @@ export default function AdminPropertyWizardVertical() {
               <ErrorBanner list={Object.values(serverErrors).flat().filter(Boolean)} />
 
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={current.key}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {current.key === "classification" && (
-                    <Classification data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "basic" && (
-                    <BasicDetails data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "location" && (
-                    <Location data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "size" && (
-                    <SizeLayout
-                      data={data}
-                      onChange={onChange}
-                      isResidential={isResidential}
-                      isCommercial={isCommercial}
-                      isLand={isLand}
-                      fe={fe}
-                    />
-                  )}
-                  {current.key === "pricing" && (
-                    <PricingTenure data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "amenities" && (
-                    <Amenities data={data} toggleAmenity={toggleAmenity} />
-                  )}
-                  {current.key === "legal" && (
-                    <LegalDocs data={data} onChange={onChange} onFiles={handleFiles} />
-                  )}
-                  {current.key === "media" && (
-                    <MediaSection data={data} onChange={onChange} onFiles={handleFiles} />
-                  )}
-                  {current.key === "seo" && <SEOSection data={data} onChange={onChange} />}
-                  {current.key === "contact" && (
-                    <ContactSection data={data} onChange={onChange} />
-                  )}
-                  {current.key === "review" && <ReviewSubmit data={data} />}
-                </motion.div>
-              </AnimatePresence>
+  <motion.div
+    key={current.key}
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -12 }}
+    transition={{ duration: 0.25 }}
+  >
+    {current.key === "classification" && (
+      <Classification data={data} onChange={onChange} fe={fe} />
+    )}
+    {current.key === "basic" && (
+      <BasicDetails data={data} onChange={onChange} fe={fe} />
+    )}
+    {current.key === "location" && (
+      <Location data={data} onChange={onChange} fe={fe} />
+    )}
+    {current.key === "size" && (
+      <SizeLayout
+        data={data}
+        onChange={onChange}
+        isResidential={isResidential}
+        isCommercial={isCommercial}
+        isLand={isLand}
+        fe={fe}
+      />
+    )}
+    {current.key === "pricing" && (
+      <PricingTenure data={data} onChange={onChange} fe={fe} />
+    )}
+    {current.key === "amenities" && (
+      <Amenities data={data} toggleAmenity={toggleAmenity} />
+    )}
+    {current.key === "legal" && (
+      <LegalDocs data={data} onChange={onChange} onFiles={handleFiles} />
+    )}
+    {current.key === "media" && (
+      <MediaSection data={data} onChange={onChange} onFiles={handleFiles} />
+    )}
+
+    {/* 🔥 NEW: Nearby step */}
+    {current.key === "nearby" && (
+      <NearbySection data={data} onChange={onChange} />
+    )}
+
+    {current.key === "seo" && <SEOSection data={data} onChange={onChange} />}
+    {current.key === "contact" && (
+      <ContactSection data={data} onChange={onChange} />
+    )}
+    {current.key === "review" && <ReviewSubmit data={data} />}
+  </motion.div>
+</AnimatePresence>
+
 
               <div className="mt-8 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -734,7 +787,7 @@ function Classification({ data, onChange, fe }: any) {
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Field label="Service" error={fe("service")} required>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {SERVICE_OPTIONS.map((o) => (
               <button
                 key={o.value}
@@ -854,29 +907,31 @@ function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
     <div>
       <SectionTitle icon={Ruler} title="Size & Layout" subtitle="Areas, floors & configuration (auto-adapts)." />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Field label="Super Area (sqft)" error={fe("super_area_sqft")}>
-          <TextInput type="number" min={0} value={data.super_area_sqft} onChange={(v) => onChange("super_area_sqft", v)} placeholder="e.g., 1650" />
+        {/* NEW size text instead of granular size fields */}
+        <Field label="Size (text)" error={fe("size_sqft_text")}>
+          <TextInput value={data.size_sqft_text} onChange={(v) => onChange("size_sqft_text", v)} placeholder="e.g., 1350–1750 sqft / 2–3 BHK" />
         </Field>
-        <Field label="Carpet Area (sqft)" error={fe("carpet_area_sqft")}>
-          <TextInput type="number" min={0} value={data.carpet_area_sqft} onChange={(v) => onChange("carpet_area_sqft", v)} placeholder="e.g., 1350" />
-        </Field>
-        <Field label="Built-up Area (sqft)" error={fe("builtup_area_sqft")}>
-          <TextInput type="number" min={0} value={data.builtup_area_sqft} onChange={(v) => onChange("builtup_area_sqft", v)} placeholder="e.g., 1500" />
-        </Field>
+
         {isLand && (
-          <Field label="Plot Area (sqft)" required error={fe("plot_area_sqft")}>
-            <TextInput type="number" min={0} value={data.plot_area_sqft} onChange={(v) => onChange("plot_area_sqft", v)} placeholder="e.g., 2150" />
-          </Field>
+          <>
+            <Field label="Frontage (ft)">
+              <TextInput type="number" min={0} value={data.frontage_ft} onChange={(v) => onChange("frontage_ft", v)} placeholder="e.g., 120" />
+            </Field>
+            <Field label="Depth (ft)">
+              <TextInput type="number" min={0} value={data.depth_ft} onChange={(v) => onChange("depth_ft", v)} placeholder="e.g., 300" />
+            </Field>
+          </>
         )}
+
         {isResidential && (
           <>
-            <Field label="Bedrooms" required error={fe("bedrooms")}>
-              <TextInput type="number"  min={0} max={20} value={data.bedrooms} onChange={(v) => onChange("bedrooms", v)} placeholder="e.g., 3" />
+            <Field label="Bedrooms">
+              <TextInput type="number" min={0} max={20} value={data.bedrooms} onChange={(v) => onChange("bedrooms", v)} placeholder="e.g., 3" />
             </Field>
-            <Field label="Bathrooms" required error={fe("bathrooms")}>
+            <Field label="Bathrooms">
               <TextInput type="number" min={0} max={20} value={data.bathrooms} onChange={(v) => onChange("bathrooms", v)} placeholder="e.g., 3" />
             </Field>
-            <Field label="Balconies" error={fe("balconies")}>
+            <Field label="Balconies">
               <TextInput type="number" min={0} max={20} value={data.balconies} onChange={(v) => onChange("balconies", v)} placeholder="e.g., 2" />
             </Field>
             <Field label="Furnishing">
@@ -895,6 +950,7 @@ function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
             </Field>
           </>
         )}
+
         <Field label="Floor No.">
           <TextInput value={data.floor_no} onChange={(v) => onChange("floor_no", v)} placeholder="e.g., 7" />
         </Field>
@@ -921,6 +977,20 @@ function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
         </Field>
       </div>
 
+      {/* Project meta */}
+      <div className="mt-8">
+        <h3 className="text-sm font-semibold text-slate-800 mb-3">Project Meta</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Field label="Tower Count">
+            <TextInput type="number" min={0} value={data.tower_count} onChange={(v) => onChange("tower_count", v)} placeholder="e.g., 12" />
+          </Field>
+          <Field label="Total Units">
+            <TextInput type="number" min={0} value={data.total_units} onChange={(v) => onChange("total_units", v)} placeholder="e.g., 480" />
+          </Field>
+        </div>
+      </div>
+
+      {/* Category-specific extras */}
       {isWarehouse && (
         <div className="mt-8">
           <h3 className="text-sm font-semibold text-slate-800 mb-3">Warehouse / Industrial</h3>
@@ -959,12 +1029,6 @@ function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
             </Field>
             <Field label="Irrigation">
               <TextInput value={data.irrigation} onChange={(v) => onChange("irrigation", v)} placeholder="e.g., Canal / Borewell" />
-            </Field>
-            <Field label="Frontage (ft)">
-              <TextInput value={data.frontage_ft} onChange={(v) => onChange("frontage_ft", v)} placeholder="e.g., 120" />
-            </Field>
-            <Field label="Depth (ft)">
-              <TextInput value={data.depth_ft} onChange={(v) => onChange("depth_ft", v)} placeholder="e.g., 300" />
             </Field>
           </div>
         </div>
@@ -1008,7 +1072,7 @@ function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
 }
 
 function PricingTenure({ data, onChange, fe }: any) {
-  const isBuy = data.service === "buy";
+  const isSale = data.service === "resale" || data.service === "new";
   const isRent = data.service === "rent";
   const isMortgage = data.service === "mortgage";
   const isLease = data.service === "lease";
@@ -1017,7 +1081,7 @@ function PricingTenure({ data, onChange, fe }: any) {
     <div>
       <SectionTitle icon={IndianRupee} title="Pricing & Tenure" subtitle="Min/Max/Actual pricing; fields adapt to service." />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {isBuy && (
+        {isSale && (
           <>
             <Field label="Min Price (₹)" required error={fe("price_min")}>
               <TextInput type="number" min={0} value={data.price_min} onChange={(v) => onChange("price_min", v)} placeholder="e.g., 11000000" />
@@ -1164,6 +1228,20 @@ function LegalDocs({ data, onChange, onFiles }: any) {
             <p className="mt-2 text-xs text-slate-600">{data.documents.length} file(s) selected</p>
           )}
         </Field>
+
+        {/* NEW media docs */}
+        <Field label="Brochure (PDF/JPG/PNG)">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onChange("brochure", e.target.files?.[0] || null)} />
+        </Field>
+        <Field label="Site Plan (PDF/JPG/PNG)">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onChange("site_plan", e.target.files?.[0] || null)} />
+        </Field>
+        <Field label="Flat Plans (multiple)">
+          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onFiles("flat_plans", e.target.files, 12)} />
+          {!!data.flat_plans?.length && (
+            <p className="mt-2 text-xs text-slate-600">{data.flat_plans.length} file(s) selected</p>
+          )}
+        </Field>
       </div>
     </div>
   );
@@ -1259,6 +1337,76 @@ function MediaSection({ data, onChange, onFiles }: any) {
         <Field label="Virtual Tour URL (optional)">
           <TextInput value={data.virtual_tour_url} onChange={(v) => onChange("virtual_tour_url", v)} placeholder="https://..." />
         </Field>
+      </div>
+    </div>
+  );
+}
+function NearbySection({ data, onChange }: any) {
+  const addNearby = () => {
+    const next = [...(data.nearby || []), { title: "", description: "", distance: "" }];
+    onChange("nearby", next);
+  };
+
+  const updateNearby = (i: number, key: string, value: string) => {
+    const next = [...data.nearby];
+    next[i][key] = value;
+    onChange("nearby", next);
+  };
+
+  const removeNearby = (i: number) => {
+    const next = [...data.nearby];
+    next.splice(i, 1);
+    onChange("nearby", next);
+  };
+
+  return (
+    <div>
+      <SectionTitle
+        icon={MapPin}
+        title="Nearby Places"
+        subtitle="Add important nearby locations like schools, metro, hospitals etc."
+      />
+      <div className="space-y-6">
+        {(data.nearby || []).map((n: any, i: number) => (
+          <div key={i} className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Field label="Title">
+                <TextInput
+                  value={n.title}
+                  onChange={(v) => updateNearby(i, "title", v)}
+                  placeholder="e.g., City Metro Station"
+                />
+              </Field>
+              <Field label="Description">
+                <TextInput
+                  value={n.description}
+                  onChange={(v) => updateNearby(i, "description", v)}
+                  placeholder="e.g., Walking distance from property"
+                />
+              </Field>
+              <Field label="Distance (km)">
+                <TextInput
+                  type="number"
+                  value={n.distance}
+                  onChange={(v) => updateNearby(i, "distance", v)}
+                  placeholder="e.g., 2.5"
+                />
+              </Field>
+            </div>
+            <button
+              onClick={() => removeNearby(i)}
+              className="mt-2 text-xs text-rose-600 underline"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={addNearby}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          + Add Nearby Place
+        </button>
       </div>
     </div>
   );
@@ -1360,9 +1508,7 @@ function ReviewSubmit({ data }: any) {
         <div className="rounded-xl border border-slate-200 p-5">
           <h3 className="font-semibold mb-4">Size & Layout</h3>
           <div className="space-y-2">
-            <Row label="Super Area">{data.super_area_sqft} sqft</Row>
-            <Row label="Carpet Area">{data.carpet_area_sqft} sqft</Row>
-            <Row label="Built-up Area">{data.builtup_area_sqft} sqft</Row>
+            <Row label="Size">{data.size_sqft_text}</Row>
             <Row label="Bedrooms">{data.bedrooms}</Row>
             <Row label="Bathrooms">{data.bathrooms}</Row>
             <Row label="Balconies">{data.balconies}</Row>
@@ -1370,6 +1516,8 @@ function ReviewSubmit({ data }: any) {
             <Row label="Parking (O/C)">
               {data.parking_open}/{data.parking_covered}
             </Row>
+            <Row label="Tower Count">{data.tower_count}</Row>
+            <Row label="Total Units">{data.total_units}</Row>
           </div>
         </div>
         <div className="rounded-xl border border-slate-200 p-5">
@@ -1408,6 +1556,24 @@ function ReviewSubmit({ data }: any) {
             <Row label="Meta Title">{data.meta_title}</Row>
           </div>
         </div>
+<div className="rounded-xl border border-slate-200 p-5">
+  <h3 className="font-semibold mb-4">Nearby</h3>
+  {data.nearby?.length ? (
+    <ul className="space-y-2 text-sm">
+      {data.nearby.map((n: any, i: number) => (
+        <li key={i} className="border-b pb-1">
+          <strong>{n.title}</strong>
+          {n.distance ? ` — ${n.distance} km` : ""} 
+          {n.description ? ` — ${n.description}` : ""}
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-slate-400 text-sm">No nearby places added</p>
+  )}
+</div>
+
+
       </div>
     </div>
   );

@@ -34,12 +34,12 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/property-show/:id" element={<PropertyShow />} />
           <Route path="/admin-property" element={<AdminPropertyWizard />} />
-          <Route path="/customer-requirement" element={<CustomerRequirement />} />
+          <Route path="/terrascout" element={<CustomerRequirement />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/add-property" element={<AddProperty />} />
           <Route path="/terrashare" element={<TerraShare />} />
-          <Route path="/properties" element={<Properties />} />
-          <Route path="/property/:id" element={<PropertyDetail />} />
+          <Route path="/terrashare-properties" element={<Properties />} />
+          <Route path="/terrashare-properties/:id" element={<PropertyDetail />} />
           <Route path="/about" element={<About />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/posts" element={<Posts />} />

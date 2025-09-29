@@ -1,731 +1,1277 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+// src/pages/AdminPropertyWizardVertical.tsx
+import React, { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { motion, AnimatePresence } from "framer-motion";
 import API from "@/api/api";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import {
-  Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { Loader2, MapPin, Building2, Home, Landmark } from "lucide-react";
+  Building2,
+  Home,
+  Factory,
+  Warehouse,
+  MapPin,
+  Ruler,
+  IndianRupee,
+  ShieldCheck,
+  Images,
+  Settings2,
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  Info,
+} from "lucide-react";
 
-// Map
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-
-// --- Simple marker icon fix for leaflet with Vite ---
-const markerIcon = new L.Icon({
-  iconUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-// --- Utilities ---
-const emojiFlag = (iso2: string) =>
-  iso2.toUpperCase().replace(/./g, (c) =>
-    String.fromCodePoint(127397 + c.charCodeAt(0))
+/* ---------------------------------- UI ---------------------------------- */
+function Toast({
+  open,
+  title,
+  subtitle,
+  onClose,
+}: {
+  open: boolean;
+  title?: string;
+  subtitle?: string;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed right-4 bottom-4 z-[60]">
+      <div className="rounded-xl bg-slate-900 text-white shadow-lg px-4 py-3 max-w-sm">
+        <div className="font-medium">{title}</div>
+        {subtitle && <div className="text-sm text-slate-300 mt-0.5">{subtitle}</div>}
+        <button onClick={onClose} className="mt-2 text-xs underline">
+          Dismiss
+        </button>
+      </div>
+    </div>
   );
-
-// NOTE: Sample list kept reasonable here.
-// If you want *all countries*, drop in a longer array (200+) or load from a JSON.
-const COUNTRIES = [
-  { name: "India", iso2: "IN", dial: "91" },
-  { name: "United States", iso2: "US", dial: "1" },
-  { name: "United Kingdom", iso2: "GB", dial: "44" },
-  { name: "United Arab Emirates", iso2: "AE", dial: "971" },
-  { name: "Australia", iso2: "AU", dial: "61" },
-  { name: "Canada", iso2: "CA", dial: "1" },
-  { name: "Germany", iso2: "DE", dial: "49" },
-  { name: "France", iso2: "FR", dial: "33" },
-  { name: "Singapore", iso2: "SG", dial: "65" },
-  { name: "Saudi Arabia", iso2: "SA", dial: "966" },
-  { name: "Japan", iso2: "JP", dial: "81" },
-  { name: "Nepal", iso2: "NP", dial: "977" },
-  { name: "Bangladesh", iso2: "BD", dial: "880" },
-  { name: "Sri Lanka", iso2: "LK", dial: "94" },
-  { name: "Qatar", iso2: "QA", dial: "974" },
-];
-
-const PROPERTY_SERVICES = [
-  { value: "buy", label: "Buy Property", Icon: Home },
-  { value: "lease", label: "Lease Property", Icon: Landmark },
-] as const;
-
-const PROPERTY_TYPES = {
-  buy: [
-    { value: "residential_apartment", label: "Residential • Apartment" },
-    { value: "residential_villa", label: "Residential • Villa / House" },
-    { value: "residential_plot", label: "Residential • Plot" },
-    { value: "commercial_office", label: "Commercial • Office" },
-    { value: "commercial_shop", label: "Commercial • Shop / Showroom" },
-    { value: "commercial_restaurant", label: "Commercial • Restaurant / Café" },
-    { value: "commercial_hotel", label: "Commercial • Hotel" },
-    { value: "industrial_warehouse", label: "Industrial • Warehouse" },
-  ],
-  lease: [
-    { value: "residential_apartment", label: "Residential • Apartment" },
-    { value: "residential_villa", label: "Residential • Villa / House" },
-    { value: "commercial_office", label: "Commercial • Office" },
-    { value: "commercial_shop", label: "Commercial • Shop / Showroom" },
-    { value: "commercial_restaurant", label: "Commercial • Restaurant / Café" },
-    { value: "commercial_hotel", label: "Commercial • Hotel" },
-    { value: "industrial_warehouse", label: "Industrial • Warehouse" },
-  ],
-} as const;
-
-type ServiceKey = (typeof PROPERTY_SERVICES)[number]["value"];
-type RequirementForm = {
-  name: string;
-  countryDial: string;     // e.g., "91"
-  phone: string;           // 10-digit local number (your ask)
-  email: string;
-  service: ServiceKey | "";
-  propertyType: string;    // depends on service
-  areaText: string;        // free text area/locality
-  addressText: string;     // detailed address if any
-  lat?: number | null;
-  lng?: number | null;
-  // Dynamic details
-  bedrooms?: string;
-  bathrooms?: string;
-  parking?: string;
-  furnishing?: string;     // furnished/semifurnished/unfurnished
-  budgetMin?: string;
-  budgetMax?: string;
-  leaseTerm?: string;      // 11 months / 3 years etc.
-  possession?: string;     // immediate / 3 months / 6 months
-  carpetArea?: string;     // in sqft
-  superArea?: string;      // in sqft
-  notes?: string;
-};
-
-const initial: RequirementForm = {
-  name: "",
-  countryDial: "91",
-  phone: "",
-  email: "",
-  service: "",
-  propertyType: "",
-  areaText: "",
-  addressText: "",
-  lat: null,
-  lng: null,
-  bedrooms: "",
-  bathrooms: "",
-  parking: "",
-  furnishing: "",
-  budgetMin: "",
-  budgetMax: "",
-  leaseTerm: "",
-  possession: "",
-  carpetArea: "",
-  superArea: "",
-  notes: "",
-};
-
-// validators
-const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-const isValid10 = (v: string) => /^[0-9]{10}$/.test(v); // your 10-digit rule
-
-// --- Map click hook ---
-function ClickCapture({ onPick }: { onPick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
 }
 
-export default function CustomerRequirement() {
-  const { toast } = useToast();
-  const [form, setForm] = useState<RequirementForm>(initial);
+function ErrorBanner({ list }: { list: string[] }) {
+  if (!list?.length) return null;
+  return (
+    <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 p-3">
+      <div className="font-medium">Please fix the following:</div>
+      <ul className="mt-1 list-disc pl-5 text-sm">
+        {list.slice(0, 6).map((m, i) => (
+          <li key={i}>{m}</li>
+        ))}
+        {list.length > 6 && <li>…and {list.length - 6} more</li>}
+      </ul>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  error,
+  children,
+  required,
+}: {
+  label: string;
+  error?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-sm font-medium text-slate-700">
+          {label}
+          {required && <span className="text-rose-600"> *</span>}
+        </label>
+        {error && <span className="text-xs text-rose-600">{error}</span>}
+      </div>
+      <div className={error ? "rounded-xl ring-1 ring-rose-300 p-0.5" : ""}>
+        {children}
+      </div>
+    </div>
+  );
+}
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  min,
+  max,
+}: {
+  value: any;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  min?: number;
+  max?: number;
+}) {
+  return (
+    <input
+      type={type}
+      value={value ?? ""}
+      min={min as any}
+      max={max as any}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-slate-300 focus:shadow-sm"
+    />
+  );
+}
+function Textarea({
+  value,
+  onChange,
+  placeholder,
+  rows = 4,
+}: {
+  value: any;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <textarea
+      rows={rows}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-slate-300 focus:shadow-sm"
+    />
+  );
+}
+function Select({
+  value,
+  onChange,
+  children,
+}: {
+  value: any;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-slate-300 focus:shadow-sm"
+    >
+      <option value="">Select...</option>
+      {children}
+    </select>
+  );
+}
+function SectionTitle({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: any;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="mb-6 flex items-start gap-3">
+      <div className="rounded-xl bg-slate-900 p-2 text-white">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        {subtitle && <p className="text-sm text-slate-600 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Constants ------------------------------ */
+const SERVICE_OPTIONS = [
+  { value: "rent", label: "Rent" },
+  { value: "lease", label: "Lease" },
+  { value: "mortgage", label: "Mortgage" },
+  { value: "resale", label: "Resale" },
+  { value: "new", label: "New Sale" },
+];
+
+const PROPERTY_TYPES = [
+  { value: "apartment", label: "Apartment/Flat", icon: Home },
+  { value: "independent_house", label: "Independent House/Villa", icon: Home },
+  { value: "studio", label: "Studio", icon: Home },
+  { value: "residential_plot", label: "Residential Plot", icon: Building2 },
+  { value: "commercial_plot", label: "Commercial Plot", icon: Building2 },
+  { value: "office", label: "Office / Co-working", icon: Building2 },
+  { value: "retail_shop", label: "Retail / Showroom", icon: Building2 },
+  { value: "warehouse", label: "Warehouse / Godown", icon: Warehouse },
+  { value: "industrial_shed", label: "Industrial Shed / Factory", icon: Factory },
+  { value: "land_agricultural", label: "Agricultural Land / Farm", icon: Factory },
+  { value: "hotel", label: "Hotel / Guest House", icon: Building2 },
+  { value: "hospital", label: "Hospital / Clinic", icon: Building2 },
+  { value: "school", label: "School / College", icon: Building2 },
+  { value: "others", label: "Others", icon: Settings2 },
+];
+
+const AMENITIES_ALL = [
+  "Power Backup",
+  "Lift",
+  "24x7 Security",
+  "CCTV",
+  "Fire Safety",
+  "Intercom",
+  "Gas Pipeline",
+  "Wi-Fi",
+  "Wheelchair Accessible",
+  "Gated Community",
+  "Club House",
+  "Gym",
+  "Swimming Pool",
+  "Kids' Play Area",
+  "Park/Garden",
+  "Indoor Games",
+  "Jogging Track",
+  "Temple",
+];
+
+const initialState: any = {
+  service: "",
+  property_type: "",
+
+  title: "",
+  project_name: "",
+  builder_name: "",
+  rera_id: "",
+  description: "",
+
+  country: "India",
+  state: "",
+  city: "",
+  locality: "",
+  address_line: "",
+  pincode: "",
+  latitude: "",
+  longitude: "",
+  google_map_link: "",
+
+  // NEW size field
+  size_sqft_text: "",
+
+  bedrooms: "",
+  bathrooms: "",
+  balconies: "",
+  furnishing: "",
+  kitchen_type: "",
+  floor_no: "",
+  total_floors: "",
+  facing: "",
+  parking_open: "",
+  parking_covered: "",
+
+  // pricing
+  price_min: "",
+  price_max: "",
+  price_actual: "",
+  price_per_sqft: "",
+  expected_rent: "",
+  security_deposit: "",
+  maintenance_monthly: "",
+  maintenance_type: "",
+  price_negotiable: false,
+  mortgage_amount: "",
+  interest_rate: "",
+  mortgage_tenure_months: "",
+  lease_duration_months: "",
+
+  // NEW project meta
+  tower_count: "",
+  total_units: "",
+
+  amenities: [],
+
+  noc_available: false,
+  loan_available: false,
+  occupancy_certificate: false,
+  completion_certificate: false,
+
+  // uploads
+  documents: [],
+  main_image: null,
+  gallery: [],
+  brochure: null,          // NEW
+  site_plan: null,         // NEW
+  flat_plans: [],          // NEW
+  video_url: "",
+  virtual_tour_url: "",
+
+  // NEW JSON fields
+  nearby: [],
+  extra_json: {},
+
+  meta_title: "",
+  meta_description: "",
+
+  owner_name: "",
+  owner_phone: "",
+  owner_email: "",
+  listed_by: "",
+  available_from: "",
+  status: "draft",
+
+  // type-specific
+  hotel_room_count: "",
+  hotel_star_rating: "",
+  dock_count: "",
+  eaves_height_ft: "",
+  floor_loading_ton: "",
+  soil_type: "",
+  irrigation: "",
+  frontage_ft: "",
+  depth_ft: "",
+  workstations: "",
+  cabins: "",
+  conference_rooms: "",
+  pantry: false,
+  washroom_inside: false,
+};
+
+const steps = [
+  { key: "classification", title: "Classification", icon: Settings2 },
+  { key: "basic", title: "Basic Details", icon: Home },
+  { key: "location", title: "Location", icon: MapPin },
+  { key: "size", title: "Size & Layout", icon: Ruler },
+  { key: "pricing", title: "Pricing & Tenure", icon: IndianRupee },
+  { key: "amenities", title: "Amenities", icon: CheckCircle2 },
+  { key: "legal", title: "Legal & Docs", icon: ShieldCheck },
+  { key: "media", title: "Media", icon: Images },
+  { key: "seo", title: "SEO", icon: Info },
+  { key: "contact", title: "Contact", icon: Building2 },
+  { key: "review", title: "Review & Submit", icon: CheckCircle2 },
+];
+
+/* --------------------------------- Page --------------------------------- */
+export default function AdminPropertyWizardVertical() {
+  const [data, setData] = useState<any>(() => {
+    const draft = localStorage.getItem("admin_prop_draft");
+    if (!draft) return initialState;
+    const saved = JSON.parse(draft);
+    return { ...initialState, ...saved, main_image: null, gallery: [], documents: [], brochure: null, site_plan: null, flat_plans: [] };
+  });
+
+  const [stepIndex, setStepIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [errors, setErrors] = useState<any>({});
+  const [serverErrors, setServerErrors] = useState<Record<string, string[]>>({});
+  const [toast, setToast] = useState<{ open: boolean; title?: string; subtitle?: string }>({
+    open: false,
+  });
 
-  // debounced search to Nominatim
-  const searchRef = useRef<number | null>(null);
+  const fe = (name: string) => errors?.[name] || serverErrors?.[name]?.[0] || "";
+
   useEffect(() => {
-    if (!search.trim()) {
-      setSearchResults([]);
+    const { main_image, gallery, documents, brochure, site_plan, flat_plans, ...rest } = data;
+    localStorage.setItem("admin_prop_draft", JSON.stringify(rest));
+  }, [data, stepIndex]);
+
+  const current = steps[stepIndex];
+  const next = () => setStepIndex((i) => Math.min(i + 1, steps.length - 1));
+  const prev = () => setStepIndex((i) => Math.max(i - 1, 0));
+  const onChange = (name: string, value: any) => setData((d: any) => ({ ...d, [name]: value }));
+
+  const toggleAmenity = (key: string) =>
+    setData((d: any) => {
+      const exists = d.amenities.includes(key);
+      return { ...d, amenities: exists ? d.amenities.filter((a: string) => a !== key) : [...d.amenities, key] };
+    });
+
+  const handleFiles = (name: string, files: FileList | null, limit = 8) => {
+    const arr = Array.from(files || []);
+    setData((d: any) => ({ ...d, [name]: arr.slice(0, limit) }));
+  };
+
+  const validateStep = () => {
+    const e: any = {};
+    if (current.key === "classification") {
+      if (!data.service) e.service = "Select service";
+      if (!data.property_type) e.property_type = "Select property type";
+    }
+    if (current.key === "basic") {
+      if (!data.title) e.title = "Title required";
+      if (!data.description) e.description = "Add a short description";
+    }
+    if (current.key === "location") {
+      if (!data.city) e.city = "City required";
+      if (!data.address_line) e.address_line = "Address required";
+    }
+    if (current.key === "pricing") {
+      const isSale = data.service === "resale" || data.service === "new";
+      if (data.service === "rent" && !data.price_actual && !data.expected_rent)
+        e.price_actual = "Rent required";
+      if ((isSale || data.service === "lease") && !data.price_min && !data.price_actual)
+        e.price_min = "Min price or Actual required";
+      if (data.service === "mortgage" && !data.mortgage_amount)
+        e.mortgage_amount = "Mortgage amount required";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const goNext = () => {
+    if (validateStep()) next();
+  };
+
+  const resetDraft = () => {
+    localStorage.removeItem("admin_prop_draft");
+    setData(initialState);
+    setStepIndex(0);
+    setServerErrors({});
+    setErrors({});
+  };
+
+  // Smart appender for FormData (skip empty, cast booleans)
+  const appendSmart = (form: FormData, key: string, val: any) => {
+    if (val === undefined || val === null) return;
+
+    const numericKeys = new Set([
+      'bedrooms','bathrooms','balconies','parking_open','parking_covered',
+      'price_min','price_max','price_actual','price_per_sqft','expected_rent','security_deposit',
+      'maintenance_monthly','mortgage_amount','interest_rate','mortgage_tenure_months','lease_duration_months',
+      // project meta
+      'tower_count','total_units',
+      // type-specific
+      'hotel_room_count','dock_count','eaves_height_ft','floor_loading_ton','frontage_ft','depth_ft',
+      'workstations','cabins','conference_rooms'
+    ]);
+    const booleanKeys = new Set([
+      "price_negotiable","noc_available","loan_available","occupancy_certificate","completion_certificate",
+      "pantry","washroom_inside",
+    ]);
+
+    // uploads
+    if (key === "main_image") {
+      if (val) form.append("main_image", val as File);
       return;
     }
-    if (searchRef.current) window.clearTimeout(searchRef.current);
-    searchRef.current = window.setTimeout(async () => {
-      try {
-        setSearching(true);
-        const q = encodeURIComponent(search.trim());
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
-        const data = await res.json();
-        setSearchResults(data?.slice(0, 6) || []);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setSearching(false);
+    if (key === "brochure") {
+      if (val) form.append("brochure", val as File);
+      return;
+    }
+    if (key === "site_plan") {
+      if (val) form.append("site_plan", val as File);
+      return;
+    }
+    if (key === "gallery" && Array.isArray(val)) {
+      val.forEach((f: File, i: number) => f && form.append(`gallery[${i}]`, f));
+      return;
+    }
+    if (key === "documents" && Array.isArray(val)) {
+      val.forEach((f: File, i: number) => f && form.append(`documents[${i}]`, f));
+      return;
+    }
+    if (key === "flat_plans" && Array.isArray(val)) {
+      val.forEach((f: File, i: number) => f && form.append(`flat_plans[${i}]`, f));
+      return;
+    }
+
+    // arrays/objects to JSON (for json columns)
+    if (key === "amenities" || key === "nearby" || key === "extra_json") {
+      if ((Array.isArray(val) && val.length === 0) || (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0)) {
+        return; // skip empty
       }
-    }, 450);
-    return () => {
-      if (searchRef.current) window.clearTimeout(searchRef.current);
-    };
-  }, [search]);
-
-  const ServiceIcon = useMemo(() => {
-    const found = PROPERTY_SERVICES.find((s) => s.value === form.service);
-    return found?.Icon ?? Building2;
-  }, [form.service]);
-
-  const typesForService = useMemo(() => {
-    if (!form.service) return [];
-    return PROPERTY_TYPES[form.service];
-  }, [form.service]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const name = form.name.trim();
-    const email = form.email.trim();
-    const phone = form.phone.replace(/\D/g, "");
-
-    if (name.length < 2) {
-      toast({ title: "Please enter your name", variant: "destructive" });
-      return;
-    }
-    if (!isValid10(phone)) {
-      toast({
-        title: "Invalid mobile number",
-        description: "Please enter exactly 10 digits.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!isValidEmail(email)) {
-      toast({
-        title: "Invalid email",
-        description: "Use a valid email like name@example.com",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!form.service) {
-      toast({ title: "Please choose Buy/Lease", variant: "destructive" });
-      return;
-    }
-    if (!form.propertyType) {
-      toast({ title: "Please select property type", variant: "destructive" });
-      return;
-    }
-    if (!form.areaText && !form.addressText) {
-      toast({
-        title: "Add an area or address",
-        description: "Tell us where you want the property.",
-        variant: "destructive",
-      });
+      form.append(key, JSON.stringify(val));
       return;
     }
 
-    setSubmitting(true);
+    if (numericKeys.has(key)) {
+      if (val === "" || Number.isNaN(Number(val))) return;
+      form.append(key, String(val));
+      return;
+    }
+    if (booleanKeys.has(key)) {
+      form.append(key, val ? "1" : "0");
+      return;
+    }
+
+    if (typeof val === "string" && val.trim() === "") return;
+    form.append(key, val as any);
+  };
+
+  const submitForm = async () => {
+    setServerErrors({});
+
+    const form = new FormData();
+    const payload = { ...data };
+    if (payload.service === "rent" && payload.expected_rent && !payload.price_actual) {
+      payload.price_actual = payload.expected_rent;
+    }
+    Object.entries(payload).forEach(([k, v]) => appendSmart(form, k, v));
+
     try {
-      const payload = {
-        name,
-        country_code: `+${form.countryDial}`,
-        phone, // 10-digit
-        email,
-        service: form.service,
-        property_type: form.propertyType,
-        area_text: form.areaText,
-        address_text: form.addressText,
-        latitude: form.lat,
-        longitude: form.lng,
-        bedrooms: form.bedrooms,
-        bathrooms: form.bathrooms,
-        parking: form.parking,
-        furnishing: form.furnishing,
-        budget_min: form.budgetMin,
-        budget_max: form.budgetMax,
-        lease_term: form.leaseTerm,
-        possession: form.possession,
-        carpet_area: form.carpetArea,
-        super_area: form.superArea,
-        notes: form.notes,
-      };
+      setSubmitting(true);
+      const res = await API.post("/admin-properties", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      const res = await API.post("/requirements", payload);
-      toast({
-        title: "We’ve got your requirement!",
-        description: "Our expert will contact you soon.",
-      });
-      setForm(initial);
-      setSearch("");
-      setSearchResults([]);
-      console.debug("Requirement saved:", res.data);
+      setToast({ open: true, title: "Property saved", subtitle: `ID: ${res.data?.id}` });
+      localStorage.removeItem("admin_prop_draft");
+      setData(initialState);
+      setStepIndex(0);
+      setErrors({});
+      setServerErrors({});
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        "Something went wrong while saving. Please try again.";
-      const errors = err?.response?.data?.errors;
-      let detail = "";
-      if (errors && typeof errors === "object") {
-        const firstKey = Object.keys(errors)[0];
-        if (firstKey && Array.isArray(errors[firstKey]) && errors[firstKey][0]) {
-          detail = errors[firstKey][0];
-        }
+      const status = err?.response?.status;
+      const body = err?.response?.data;
+
+      if (status === 422 && body?.errors) {
+        setServerErrors(body.errors);
+        const firstKey = Object.keys(body.errors)[0];
+        const stepForField: Record<string, number> = {
+          service: 0,
+          property_type: 0,
+          title: 1,
+          description: 1,
+          city: 2,
+          address_line: 2,
+          size_sqft_text: 3,
+          bedrooms: 3,
+          bathrooms: 3,
+          balconies: 3,
+          parking_open: 3,
+          parking_covered: 3,
+          price_min: 4,
+          price_max: 4,
+          price_actual: 4,
+          expected_rent: 4,
+          mortgage_amount: 4,
+          interest_rate: 4,
+          mortgage_tenure_months: 4,
+          lease_duration_months: 4,
+          documents: 6,
+          main_image: 7,
+          gallery: 7,
+          brochure: 7,
+          site_plan: 7,
+          flat_plans: 7,
+          owner_email: 9,
+          owner_phone: 9,
+        };
+        if (firstKey in stepForField) setStepIndex(stepForField[firstKey]);
+
+        setToast({
+          open: true,
+          title: "Please correct the highlighted fields",
+          subtitle: `${Object.values(body.errors).flat().length} issues`,
+        });
+      } else {
+        setToast({
+          open: true,
+          title: "Submit failed",
+          subtitle: body?.message || `HTTP ${status || "ERR"}`,
+        });
       }
-      toast({
-        title: "Could not submit",
-        description: detail || msg,
-        variant: "destructive",
-      });
-      console.error("Requirement save failed:", err?.response || err);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // UI
+  const isResidential = ["apartment", "independent_house", "studio"].includes(data.property_type);
+  const isCommercial = [
+    "office",
+    "retail_shop",
+    "warehouse",
+    "industrial_shed",
+    "factory",
+    "hotel",
+    "hospital",
+    "school",
+  ].includes(data.property_type);
+  const isLand = ["residential_plot", "commercial_plot", "land_agricultural"].includes(
+    data.property_type
+  );
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       <Header />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-600 to-lime-600" />
-        <div
-          className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_20%_20%,white_0,transparent_35%),radial-gradient(circle_at_80%_30%,white_0,transparent_40%)]"
-          aria-hidden
-        />
-        <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-24 text-white">
-          <div className="max-w-3xl">
-            <p className="uppercase tracking-wider opacity-90 text-xs mb-2">Terranexxus • Concierge</p>
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Tell us your property requirement
-            </h1>
-            <p className="mt-3 text-white/90 max-w-2xl">
-              Buy or lease—share your preferences, drop a pin on the map, and our experts will shortlist the best options.
+      <section className="mx-auto max-w-7xl px-4 md:px-6 py-8">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-fuchsia-500 to-cyan-500" />
+          <div className="p-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Create Property</h1>
+            <p className="text-slate-600 mt-1">
+              Fill details step by step. All extra fields are optional.
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[280px,1fr] gap-0 border-t border-slate-100">
+            <aside className="bg-slate-50/60 border-r border-slate-100 p-4 md:p-6 sticky top-0 self-start">
+              <nav className="space-y-2">
+                {steps.map((s, i) => {
+                  const Icon = s.icon;
+                  const active = i === stepIndex;
+                  const done = i < stepIndex;
+                  return (
+                    <button
+                      key={s.key}
+                      onClick={() => setStepIndex(i)}
+                      className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
+                        active
+                          ? "bg-emerald-600 text-white shadow"
+                          : done
+                          ? "bg-white border border-emerald-200 text-emerald-700"
+                          : "bg-white border border-slate-200 text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                          active
+                            ? "bg-white text-emerald-700"
+                            : done
+                            ? "bg-emerald-600 text-white"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="text-sm font-medium">{s.title}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </aside>
+
+            <div className="p-6 md:p-8">
+              {/* Global server error banner */}
+              <ErrorBanner list={Object.values(serverErrors).flat().filter(Boolean)} />
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={current.key}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {current.key === "classification" && (
+                    <Classification data={data} onChange={onChange} fe={fe} />
+                  )}
+                  {current.key === "basic" && (
+                    <BasicDetails data={data} onChange={onChange} fe={fe} />
+                  )}
+                  {current.key === "location" && (
+                    <Location data={data} onChange={onChange} fe={fe} />
+                  )}
+                  {current.key === "size" && (
+                    <SizeLayout
+                      data={data}
+                      onChange={onChange}
+                      isResidential={isResidential}
+                      isCommercial={isCommercial}
+                      isLand={isLand}
+                      fe={fe}
+                    />
+                  )}
+                  {current.key === "pricing" && (
+                    <PricingTenure data={data} onChange={onChange} fe={fe} />
+                  )}
+                  {current.key === "amenities" && (
+                    <Amenities data={data} toggleAmenity={toggleAmenity} />
+                  )}
+                  {current.key === "legal" && (
+                    <LegalDocs data={data} onChange={onChange} onFiles={handleFiles} />
+                  )}
+                  {current.key === "media" && (
+                    <MediaSection data={data} onChange={onChange} onFiles={handleFiles} />
+                  )}
+                  {current.key === "seo" && <SEOSection data={data} onChange={onChange} />}
+                  {current.key === "contact" && (
+                    <ContactSection data={data} onChange={onChange} />
+                  )}
+                  {current.key === "review" && <ReviewSubmit data={data} />}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="mt-8 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={prev}
+                    disabled={stepIndex === 0}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                  </button>
+                  <button
+                    onClick={resetDraft}
+                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-rose-700 hover:bg-rose-100"
+                  >
+                    Reset Draft
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  {stepIndex < steps.length - 1 ? (
+                    <button
+                      onClick={goNext}
+                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-white shadow hover:opacity-95"
+                    >
+                      Next <ChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={submitForm}
+                      disabled={submitting}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-lime-400 px-5 py-2 text-white shadow hover:opacity-95 disabled:opacity-60"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                        </>
+                      ) : (
+                        <>Submit Property</>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* FORM */}
-      <main className="relative -mt-10 md:-mt-14 pb-16">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="rounded-2xl border border-emerald-200/50 bg-white shadow-[0_30px_80px_rgba(16,185,129,0.08)] p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Contact */}
-              <div>
-                <h3 className="text-lg font-semibold">Your Details</h3>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Your name"
-                      value={form.name}
-                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@email.com"
-                      value={form.email}
-                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                    />
-                  </div>
-
-                  {/* Phone with country code + flag */}
-                  <div className="md:col-span-2">
-                    <Label>Mobile Number</Label>
-                    <div className="mt-1 flex gap-2">
-                      <div className="w-40">
-                        <Select
-                          value={form.countryDial}
-                          onValueChange={(dial) => setForm((f) => ({ ...f, countryDial: dial }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Country" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[320px]">
-                            {COUNTRIES.map((c) => (
-                              <SelectItem key={c.iso2} value={c.dial}>
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="text-base">{emojiFlag(c.iso2)}</span>
-                                  <span className="text-sm">{c.name}</span>
-                                  <span className="ml-1 text-xs text-muted-foreground">+{c.dial}</span>
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="relative flex-1">
-                        
-                        <Input
-                          inputMode="numeric"
-                          placeholder="98XXXXXXXX"
-                          className="pl-4"
-                          value={form.phone}
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-                            setForm((f) => ({ ...f, phone: digits }));
-                          }}
-                        />
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Enter exactly 10 digits (we append the country code).
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Requirement */}
-              <div>
-                <h3 className="text-lg font-semibold">Requirement</h3>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Service */}
-                  <div>
-                    <Label>Service</Label>
-                    <div className="relative mt-1">
-                      <div
-                        className={cn(
-                          "absolute left-1.5 top-1/2 -translate-y-1/2",
-                          "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-200"
-                        )}
-                      >
-                        {form.service ? (
-                          <ServiceIcon className="w-4 h-4 text-emerald-700" />
-                        ) : (
-                          <Building2 className="w-4 h-4 text-emerald-700" />
-                        )}
-                      </div>
-                      <Select
-                        value={form.service}
-                        onValueChange={(v: ServiceKey) =>
-                          setForm((f) => ({ ...f, service: v, propertyType: "" }))
-                        }
-                      >
-                        <SelectTrigger className="pl-10">
-                          <SelectValue placeholder="Choose Buy or Lease" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROPERTY_SERVICES.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Property Type (depends on service) */}
-                  <div>
-                    <Label>Property Type</Label>
-                    <Select
-                      value={form.propertyType}
-                      onValueChange={(v) => setForm((f) => ({ ...f, propertyType: v }))}
-                      disabled={!form.service}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={form.service ? "Select type" : "Choose service first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {typesForService.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Dynamic fields suggestions */}
-                  {form.propertyType?.startsWith("residential") && (
-                    <>
-                      <div>
-                        <Label>Bedrooms</Label>
-                        <Select
-                          value={form.bedrooms}
-                          onValueChange={(v) => setForm((f) => ({ ...f, bedrooms: v }))}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                          <SelectContent>
-                            {["1", "2", "3", "4", "5+"].map((x) => (
-                              <SelectItem key={x} value={x}>{x}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Bathrooms</Label>
-                        <Select
-                          value={form.bathrooms}
-                          onValueChange={(v) => setForm((f) => ({ ...f, bathrooms: v }))}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                          <SelectContent>
-                            {["1", "2", "3", "4", "5+"].map((x) => (
-                              <SelectItem key={x} value={x}>{x}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Furnishing</Label>
-                        <Select
-                          value={form.furnishing}
-                          onValueChange={(v) => setForm((f) => ({ ...f, furnishing: v }))}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                          <SelectContent>
-                            {["Furnished", "Semi-furnished", "Unfurnished"].map((x) => (
-                              <SelectItem key={x} value={x}>{x}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Parking</Label>
-                        <Select
-                          value={form.parking}
-                          onValueChange={(v) => setForm((f) => ({ ...f, parking: v }))}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                          <SelectContent>
-                            {["None", "1 Slot", "2 Slots", "3+ Slots"].map((x) => (
-                              <SelectItem key={x} value={x}>{x}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-
-                  {form.propertyType?.startsWith("commercial_") && (
-                    <>
-                      <div>
-                        <Label>Carpet Area (sqft)</Label>
-                        <Input
-                          inputMode="numeric"
-                          placeholder="e.g., 1000"
-                          value={form.carpetArea || ""}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, carpetArea: e.target.value.replace(/\D/g, "") }))
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label>Super Area (sqft)</Label>
-                        <Input
-                          inputMode="numeric"
-                          placeholder="e.g., 1200"
-                          value={form.superArea || ""}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, superArea: e.target.value.replace(/\D/g, "") }))
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Budget / Lease specifics */}
-                  <div>
-                    <Label>Budget Min (₹)</Label>
-                    <Input
-                      inputMode="numeric"
-                      placeholder="e.g., 5000000"
-                      value={form.budgetMin || ""}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, budgetMin: e.target.value.replace(/\D/g, "") }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>Budget Max (₹)</Label>
-                    <Input
-                      inputMode="numeric"
-                      placeholder="e.g., 10000000"
-                      value={form.budgetMax || ""}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, budgetMax: e.target.value.replace(/\D/g, "") }))
-                      }
-                    />
-                  </div>
-
-                  {form.service === "lease" && (
-                    <>
-                      <div>
-                        <Label>Lease Term</Label>
-                        <Select
-                          value={form.leaseTerm}
-                          onValueChange={(v) => setForm((f) => ({ ...f, leaseTerm: v }))}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                          <SelectContent>
-                            {["11 months", "1 year", "3 years", "5 years"].map((x) => (
-                              <SelectItem key={x} value={x}>{x}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Possession</Label>
-                        <Select
-                          value={form.possession}
-                          onValueChange={(v) => setForm((f) => ({ ...f, possession: v }))}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                          <SelectContent>
-                            {["Immediate", "Within 3 months", "Within 6 months", "1 year+"].map((x) => (
-                              <SelectItem key={x} value={x}>{x}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Area & Map */}
-              <div>
-                <h3 className="text-lg font-semibold">Location</h3>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <Label>Preferred Area / Locality (text)</Label>
-                    <Input
-                      placeholder="e.g., Sector 150 Noida, BKC Mumbai, MG Road Bengaluru…"
-                      value={form.areaText}
-                      onChange={(e) => setForm((f) => ({ ...f, areaText: e.target.value }))}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Detailed Address (optional)</Label>
-                    <Input
-                      placeholder="House / Building / Street etc."
-                      value={form.addressText}
-                      onChange={(e) => setForm((f) => ({ ...f, addressText: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label>Search on Map</Label>
-                    <div className="relative mt-1">
-                      <Input
-                        placeholder="Search a place (type and pick result)…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                      {searching && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                      )}
-                    </div>
-                    {!!searchResults.length && (
-                      <div className="mt-2 rounded-lg border bg-white shadow-sm divide-y max-h-60 overflow-auto">
-                        {searchResults.map((r, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              const lat = parseFloat(r.lat);
-                              const lng = parseFloat(r.lon);
-                              setForm((f) => ({ ...f, lat, lng }));
-                              setSearch(r.display_name);
-                              setSearchResults([]);
-                            }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted/60"
-                          >
-                            <span className="inline-flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-emerald-600" />
-                              <span className="text-sm">{r.display_name}</span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-<div className="md:col-span-2">
-  <div className="rounded-xl overflow-hidden border h-[520px]"> {/* height here */}
-    <MapContainer
-      center={form.lat && form.lng ? [form.lat, form.lng] : [22.9734, 78.6569]} // India
-      zoom={5}
-      scrollWheelZoom
-      zoomControl
-      className="w-full h-full"
-      // Optional: keep users roughly in India
-      maxBounds={[[6.5, 68.0], [37.5, 97.5]]}        // SW & NE corners
-      maxBoundsViscosity={0.8}
-      minZoom={4}
-    >
-      <TileLayer
-        attribution='&copy; OpenStreetMap'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      <Toast
+        open={toast.open}
+        title={toast.title}
+        subtitle={toast.subtitle}
+        onClose={() => setToast({ open: false })}
       />
-      <ClickCapture onPick={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
-      {form.lat && form.lng && <Marker position={[form.lat, form.lng]} icon={markerIcon} />}
-    </MapContainer>
-  </div>
-  <p className="mt-2 text-xs text-muted-foreground">
-    Click on the map to drop a pin. We’ll capture exact latitude/longitude.
-  </p>
-</div>
-
-
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <Label>Notes (anything else we should know?)</Label>
-                <Textarea
-                  placeholder="E.g., corner plot preferred, near metro, south-facing, power backup, etc."
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                <Button
-                  type="submit"
-                  className="min-w-[160px] bg-gradient-to-r from-emerald-600 to-lime-500 hover:from-emerald-700 hover:to-lime-600 text-white"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…
-                    </>
-                  ) : (
-                    "Submit Requirement"
-                  )}
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  We’ll contact you soon with handpicked options.
-                </p>
-              </div>
-            </form>
-          </div>
-        </div>
-      </main>
 
       <Footer />
     </div>
   );
 }
+
+/* -------------------------------- Steps -------------------------------- */
+function Classification({ data, onChange, fe }: any) {
+  return (
+    <div>
+      <SectionTitle
+        icon={Settings2}
+        title="Choose Service & Property Type"
+        subtitle="This will tailor the next steps to your needs."
+      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Field label="Service" error={fe("service")} required>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {SERVICE_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => onChange("service", o.value)}
+                className={`rounded-xl border px-3 py-2 text-sm ${
+                  data.service === o.value
+                    ? "border-emerald-600 bg-emerald-600 text-white"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Property Type" error={fe("property_type")} required>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {PROPERTY_TYPES.map((t) => {
+              const Icon = t.icon || Building2;
+              const active = data.property_type === t.value;
+              return (
+                <button
+                  key={t.value}
+                  onClick={() => onChange("property_type", t.value)}
+                  className={`group flex items-center gap-2 rounded-xl border px-3 py-2 text-left ${
+                    active
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-sm">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function BasicDetails({ data, onChange, fe }: any) {
+  return (
+    <div>
+      <SectionTitle icon={Home} title="Basic Details" subtitle="Title, project & a short description." />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Field label="Listing Title" error={fe("title")} required>
+          <TextInput value={data.title} onChange={(v) => onChange("title", v)} placeholder="e.g., 3BHK Apartment in Sector 62" />
+        </Field>
+        <Field label="RERA ID">
+          <TextInput value={data.rera_id} onChange={(v) => onChange("rera_id", v)} placeholder="Optional" />
+        </Field>
+        <Field label="Project Name">
+          <TextInput value={data.project_name} onChange={(v) => onChange("project_name", v)} placeholder="Optional" />
+        </Field>
+        <Field label="Builder Name">
+          <TextInput value={data.builder_name} onChange={(v) => onChange("builder_name", v)} placeholder="Optional" />
+        </Field>
+        <div className="md:col-span-2">
+          <Field label="Short Description" error={fe("description")} required>
+            <Textarea value={data.description} onChange={(v) => onChange("description", v)} placeholder="Key highlights, nearby landmarks, connectivity, etc." rows={5} />
+          </Field>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Location({ data, onChange, fe }: any) {
+  return (
+    <div>
+      <SectionTitle icon={MapPin} title="Location" subtitle="City, address & map link. Lat/Long optional." />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Field label="Country">
+          <TextInput value={data.country} onChange={(v) => onChange("country", v)} placeholder="India" />
+        </Field>
+        <Field label="State">
+          <TextInput value={data.state} onChange={(v) => onChange("state", v)} placeholder="Uttar Pradesh" />
+        </Field>
+        <Field label="City" error={fe("city")} required>
+          <TextInput value={data.city} onChange={(v) => onChange("city", v)} placeholder="Noida" />
+        </Field>
+        <Field label="Locality / Area">
+          <TextInput value={data.locality} onChange={(v) => onChange("locality", v)} placeholder="Sector 62" />
+        </Field>
+        <Field label="Address Line" error={fe("address_line")} required>
+          <TextInput value={data.address_line} onChange={(v) => onChange("address_line", v)} placeholder="House/Building, Street, Sector" />
+        </Field>
+        <Field label="Pincode">
+          <TextInput value={data.pincode} onChange={(v) => onChange("pincode", v)} placeholder="201301" />
+        </Field>
+        <Field label="Google Map Link">
+          <TextInput value={data.google_map_link} onChange={(v) => onChange("google_map_link", v)} placeholder="https://maps.google.com/..." />
+        </Field>
+        <div className="grid grid-cols-2 gap-6">
+          <Field label="Latitude">
+            <TextInput value={data.latitude} onChange={(v) => onChange("latitude", v)} placeholder="28.6271" />
+          </Field>
+          <Field label="Longitude">
+            <TextInput value={data.longitude} onChange={(v) => onChange("longitude", v)} placeholder="77.3649" />
+          </Field>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
+  const isWarehouse = ["warehouse", "industrial_shed", "factory"].includes(data.property_type);
+  const isHotel = data.property_type === "hotel";
+  const isAgri = data.property_type === "land_agricultural";
+  const isOffice = data.property_type === "office";
+
+  return (
+    <div>
+      <SectionTitle icon={Ruler} title="Size & Layout" subtitle="Quick size text + floors & configuration." />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Field label="Size (text)" error={fe("size_sqft_text")}>
+          <TextInput value={data.size_sqft_text} onChange={(v) => onChange("size_sqft_text", v)} placeholder="e.g., 1350–1650 sqft (2/3 BHK)" />
+        </Field>
+
+        {isResidential && (
+          <>
+            <Field label="Bedrooms">
+              <TextInput type="number" min={0} max={20} value={data.bedrooms} onChange={(v) => onChange("bedrooms", v)} placeholder="e.g., 3" />
+            </Field>
+            <Field label="Bathrooms">
+              <TextInput type="number" min={0} max={20} value={data.bathrooms} onChange={(v) => onChange("bathrooms", v)} placeholder="e.g., 3" />
+            </Field>
+            <Field label="Balconies">
+              <TextInput type="number" min={0} max={20} value={data.balconies} onChange={(v) => onChange("balconies", v)} placeholder="e.g., 2" />
+            </Field>
+            <Field label="Furnishing">
+              <Select value={data.furnishing} onChange={(v) => onChange("furnishing", v)}>
+                <option value="unfurnished">Unfurnished</option>
+                <option value="semi_furnished">Semi Furnished</option>
+                <option value="fully_furnished">Fully Furnished</option>
+              </Select>
+            </Field>
+            <Field label="Kitchen Type">
+              <Select value={data.kitchen_type} onChange={(v) => onChange("kitchen_type", v)}>
+                <option value="closed">Closed</option>
+                <option value="open">Open</option>
+                <option value="island">Island</option>
+              </Select>
+            </Field>
+          </>
+        )}
+        <Field label="Floor No.">
+          <TextInput value={data.floor_no} onChange={(v) => onChange("floor_no", v)} placeholder="e.g., 7" />
+        </Field>
+        <Field label="Total Floors">
+          <TextInput value={data.total_floors} onChange={(v) => onChange("total_floors", v)} placeholder="e.g., 20" />
+        </Field>
+        <Field label="Facing">
+          <Select value={data.facing} onChange={(v) => onChange("facing", v)}>
+            <option value="north">North</option>
+            <option value="south">South</option>
+            <option value="east">East</option>
+            <option value="west">West</option>
+            <option value="north_east">North-East</option>
+            <option value="north_west">North-West</option>
+            <option value="south_east">South-East</option>
+            <option value="south_west">South-West</option>
+          </Select>
+        </Field>
+        <Field label="Open Parking (count)" error={fe("parking_open")}>
+          <TextInput type="number" min={0} value={data.parking_open} onChange={(v) => onChange("parking_open", v)} placeholder="e.g., 1" />
+        </Field>
+        <Field label="Covered Parking (count)" error={fe("parking_covered")}>
+          <TextInput type="number" min={0} value={data.parking_covered} onChange={(v) => onChange("parking_covered", v)} placeholder="e.g., 1" />
+        </Field>
+      </div>
+
+      {["warehouse", "industrial_shed", "factory"].includes(data.property_type) && (
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">Warehouse / Industrial</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Field label="Dock Count">
+              <TextInput value={data.dock_count} onChange={(v) => onChange("dock_count", v)} placeholder="e.g., 6" />
+            </Field>
+            <Field label="Eaves Height (ft)">
+              <TextInput value={data.eaves_height_ft} onChange={(v) => onChange("eaves_height_ft", v)} placeholder="e.g., 28" />
+            </Field>
+            <Field label="Floor Loading (ton)">
+              <TextInput value={data.floor_loading_ton} onChange={(v) => onChange("floor_loading_ton", v)} placeholder="e.g., 5" />
+            </Field>
+          </div>
+        </div>
+      )}
+      {data.property_type === "hotel" && (
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">Hotel / Guest House</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Field label="Room Count">
+              <TextInput value={data.hotel_room_count} onChange={(v) => onChange("hotel_room_count", v)} placeholder="e.g., 42" />
+            </Field>
+            <Field label="Star Rating">
+              <TextInput value={data.hotel_star_rating} onChange={(v) => onChange("hotel_star_rating", v)} placeholder="e.g., 3" />
+            </Field>
+          </div>
+        </div>
+      )}
+      {data.property_type === "land_agricultural" && (
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">Agricultural Land</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Field label="Soil Type">
+              <TextInput value={data.soil_type} onChange={(v) => onChange("soil_type", v)} placeholder="e.g., Alluvial" />
+            </Field>
+            <Field label="Irrigation">
+              <TextInput value={data.irrigation} onChange={(v) => onChange("irrigation", v)} placeholder="e.g., Canal / Borewell" />
+            </Field>
+            <Field label="Frontage (ft)">
+              <TextInput value={data.frontage_ft} onChange={(v) => onChange("frontage_ft", v)} placeholder="e.g., 120" />
+            </Field>
+            <Field label="Depth (ft)">
+              <TextInput value={data.depth_ft} onChange={(v) => onChange("depth_ft", v)} placeholder="e.g., 300" />
+            </Field>
+          </div>
+        </div>
+      )}
+      {data.property_type === "office" && (
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">Office Specific</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Field label="Workstations">
+              <TextInput value={data.workstations} onChange={(v) => onChange("workstations", v)} placeholder="e.g., 60" />
+            </Field>
+            <Field label="Cabins">
+              <TextInput value={data.cabins} onChange={(v) => onChange("cabins", v)} placeholder="e.g., 4" />
+            </Field>
+            <Field label="Conference Rooms">
+              <TextInput value={data.conference_rooms} onChange={(v) => onChange("conference_rooms", v)} placeholder="e.g., 2" />
+            </Field>
+            <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={data.pantry}
+                  onChange={(e) => onChange("pantry", e.target.checked)}
+                />
+                Pantry
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={data.washroom_inside}
+                  onChange={(e) => onChange("washroom_inside", e.target.checked)}
+                />
+                Washroom Inside
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PricingTenure({ data, onChange, fe }: any) {
+  const isSale = data.service === "resale" || data.service === "new";
+  const isRent = data.service === "rent";
+  const isMortgage = data.service === "mortgage";
+  const isLease = data.service === "lease";
+
+  return (
+    <div>
+      <SectionTitle icon={IndianRupee} title="Pricing & Tenure" subtitle="Min/Max/Actual pricing; fields adapt to service." />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {isSale && (
+          <>
+            <Field label="Min Price (₹)" required error={fe("price_min")}>
+              <TextInput type="number" min={0} value={data.price_min} onChange={(v) => onChange("price_min", v)} placeholder="e.g., 11000000" />
+            </Field>
+            <Field label="Max Price (₹)">
+              <TextInput type="number" min={0} value={data.price_max} onChange={(v) => onChange("price_max", v)} placeholder="e.g., 13000000" />
+            </Field>
+            <Field label="Actual Price (₹)">
+              <TextInput type="number" min={0} value={data.price_actual} onChange={(v) => onChange("price_actual", v)} placeholder="Optional if unknown" />
+            </Field>
+            <Field label="Price / sq.ft (₹)">
+              <TextInput type="number" min={0} value={data.price_per_sqft} onChange={(v) => onChange("price_per_sqft", v)} placeholder="e.g., 7600" />
+            </Field>
+            <div className="md:col-span-3 flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={data.price_negotiable} onChange={(e) => onChange("price_negotiable", e.target.checked)} />
+                Price Negotiable
+              </label>
+            </div>
+          </>
+        )}
+
+        {isRent && (
+          <>
+            <Field label="Rent (Actual) per month (₹)" required error={fe("price_actual")}>
+              <TextInput
+                type="number"
+                min={0}
+                value={data.price_actual || data.expected_rent}
+                onChange={(v) => {
+                  onChange("price_actual", v);
+                  onChange("expected_rent", v);
+                }}
+                placeholder="e.g., 35000"
+              />
+            </Field>
+            <Field label="Security Deposit (₹)">
+              <TextInput type="number" min={0} value={data.security_deposit} onChange={(v) => onChange("security_deposit", v)} placeholder="e.g., 70000" />
+            </Field>
+            <Field label="Maintenance (₹)">
+              <TextInput type="number" min={0} value={data.maintenance_monthly} onChange={(v) => onChange("maintenance_monthly", v)} placeholder="e.g., 2500" />
+            </Field>
+            <Field label="Maintenance Type">
+              <Select value={data.maintenance_type} onChange={(v) => onChange("maintenance_type", v)}>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+                <option value="one_time">One-time</option>
+              </Select>
+            </Field>
+            <div className="md:col-span-3">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={data.price_negotiable}
+                  onChange={(e) => onChange("price_negotiable", e.target.checked)}
+                />
+                Rent Negotiable
+              </label>
+            </div>
+          </>
+        )}
+
+        {isMortgage && (
+          <>
+            <Field label="Mortgage Amount (₹)" required error={fe("mortgage_amount")}>
+              <TextInput type="number" min={0} value={data.mortgage_amount} onChange={(v) => onChange("mortgage_amount", v)} placeholder="e.g., 8000000" />
+            </Field>
+            <Field label="Interest Rate (%)" required error={fe("interest_rate")}>
+              <TextInput type="number" min={0} max={100} value={data.interest_rate} onChange={(v) => onChange("interest_rate", v)} placeholder="e.g., 8.5" />
+            </Field>
+            <Field label="Mortgage Tenure (months)" required error={fe("mortgage_tenure_months")}>
+              <TextInput type="number" min={0} value={data.mortgage_tenure_months} onChange={(v) => onChange("mortgage_tenure_months", v)} placeholder="e.g., 180" />
+            </Field>
+          </>
+        )}
+
+        {isLease && (
+          <>
+            <Field label="Min Price (₹)" required error={fe("price_min")}>
+              <TextInput type="number" min={0} value={data.price_min} onChange={(v) => onChange("price_min", v)} placeholder="e.g., 900000" />
+            </Field>
+            <Field label="Max Price (₹)">
+              <TextInput type="number" min={0} value={data.price_max} onChange={(v) => onChange("price_max", v)} placeholder="e.g., 1500000" />
+            </Field>
+            <Field label="Actual Price (₹)">
+              <TextInput type="number" min={0} value={data.price_actual} onChange={(v) => onChange("price_actual", v)} placeholder="If fixed" />
+            </Field>
+            <Field label="Lease Duration (months)" required error={fe("lease_duration_months")}>
+              <TextInput type="number" min={1} value={data.lease_duration_months} onChange={(v) => onChange("lease_duration_months", v)} placeholder="e.g., 36" />
+            </Field>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Amenities({ data, toggleAmenity }: any) {
+  return (
+    <div>
+      <SectionTitle icon={CheckCircle2} title="Amenities & Features" subtitle="Select what applies (single list, no duplicates)." />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {AMENITIES_ALL.map((a) => (
+          <button
+            key={a}
+            onClick={() => toggleAmenity(a)}
+            className={`rounded-full border px-4 py-2 text-sm ${
+              data.amenities.includes(a)
+                ? "border-emerald-600 bg-emerald-600 text-white"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            {a}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LegalDocs({ data, onChange, onFiles }: any) {
+  return (
+    <div>
+      <SectionTitle icon={ShieldCheck} title="Legal & Documents" subtitle="Mark availability and upload files (PDF/JPG)." />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={data.noc_available} onChange={(e) => onChange("noc_available", e.target.checked)} /> NOC Available
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={data.loan_available} onChange={(e) => onChange("loan_available", e.target.checked)} /> Loan Available
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={data.occupancy_certificate} onChange={(e) => onChange("occupancy_certificate", e.target.checked)} /> Occupancy Certificate
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={data.completion_certificate} onChange={(e) => onChange("completion_certificate", e.target.checked)} /> Completion Certificate
+        </label>
+      </div>
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Field label="Upload Documents (multiple)">
+          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onFiles("documents", e.target.files, 12)} />
+          {!!data.documents?.length && (
+            <p className="mt-2 text-xs text-slate-600">{data.documents.length} file(s) selected</p>
+          )}
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+function MediaSection({ data, onChange, onFiles }: any) {
+  const [mainPreview, setMainPreview] = useState<string | null>(null);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    const v = data.main_image as any;
+    if (v instanceof File || v instanceof Blob) {
+      const url = URL.createObjectURL(v);
+      setMainPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    if (typeof v === "string" && v.startsWith("http")) {
+      setMainPreview(v);
+      return;
+    }
+    setMainPreview(null);
+  }, [data.main_image]);
+
+  useEffect(() => {
+    const files = Array.isArray(data.gallery) ? data.gallery : [];
+    const urls = files
+      .map((f: any) =>
+        f instanceof File || f instanceof Blob ? URL.createObjectURL(f) : typeof f === "string" ? f : ""
+      )
+      .filter(Boolean) as string[];
+    setGalleryPreviews(urls);
+    return () => {
+      files.forEach((f: any) => {
+        if (f instanceof File || f instanceof Blob) {
+          try {
+            URL.revokeObjectURL(f as any);
+          } catch {}
+        }
+      });
+    };
+  }, [data.gallery]);
+
+  const removeMain = () => onChange("main_image", null);
+  const removeFromGallery = (idx: number) => {
+    const next = [...(data.gallery || [])];
+    next.splice(idx, 1);
+    onChange("gallery", next);
+  };
+
+  return (
+    <div>
+      <SectionTitle icon={Images} title="Media" subtitle="Preview & remove images before submit." />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Field label="Main Image (cover)">
+          <input type="file" accept="image/*" onChange={(e) => onChange("main_image", e.target.files?.[0] || null)} />
+          {mainPreview && (
+            <div className="relative mt-3">
+              <img src={mainPreview} alt="Main" className="h-40 w-full rounded-xl object-cover border" />
+              <button
+                type="button"
+                onClick={removeMain}
+                className="absolute top-2 right-2 rounded-full bg-rose-600/90 text-white px-2 py-1 text-xs"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+        </Field>
+
+        <Field label="Gallery Images (max 8)">
+          <input type="file" multiple accept="image/*" onChange={(e) => onFiles("gallery", e.target.files, 8)} />
+          {!!galleryPreviews.length && (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {galleryPreviews.map((src, i) => (
+                <div key={i} className="relative">
+                  <img src={src} alt={`g${i}`} className="h-28 w-full rounded-lg object-cover border" />
+                  <button
+                    type="button"
+                    onClick={() => removeFromGallery(i)}
+                    className="absolute top-1 right-1 rounded-full bg-rose-600/90 text-white px-1.5 py-0.5 text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Field>
+
+        {/* NEW: brochure / site plan / flat plans */}
+        <Field label="Project Brochure (PDF/JPG/PNG)">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onChange("brochure", e.target.files?.[0] || null)} />
+          {data.brochure && <p className="mt-2 text-xs text-slate-600">1 file selected</p>}
+        </Field>
+        <Field label="Site Plan (PDF/JPG/PNG)">
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onChange("site_plan", e.target.files?.[0] || null)} />
+          {data.site_plan && <p className="mt-2 text-xs text-slate-600">1 file selected</p>}
+        </Field>
+        <Field label="Flat Plans (multiple)">
+          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onFiles("flat_plans", e.target.files, 12)} />
+          {!!data.flat_plans?.length && (
+            <p className

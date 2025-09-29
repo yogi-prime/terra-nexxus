@@ -24,7 +24,7 @@ export const HeroSection = () => {
           <div className="hidden-custom flex items-center gap-2 mb-6">
             <Badge variant="outline" className="bg-primary-light/20 text-primary border-primary/30">
               <Shield className="h-3 w-3 mr-1" />
-              SEBI Compliant Platform
+               SEBI Compliant Platform
             </Badge>
             <Badge variant="outline" className="bg-accent-light/20 text-accent border-accent/30">
               <TrendingUp className="h-3 w-3 mr-1" />
