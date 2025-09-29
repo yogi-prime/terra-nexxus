@@ -1,0 +1,731 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import API from "@/api/api";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { Loader2, MapPin, Building2, Home, Landmark } from "lucide-react";
+
+// Map
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+
+// --- Simple marker icon fix for leaflet with Vite ---
+const markerIcon = new L.Icon({
+  iconUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+// --- Utilities ---
+const emojiFlag = (iso2: string) =>
+  iso2.toUpperCase().replace(/./g, (c) =>
+    String.fromCodePoint(127397 + c.charCodeAt(0))
+  );
+
+// NOTE: Sample list kept reasonable here.
+// If you want *all countries*, drop in a longer array (200+) or load from a JSON.
+const COUNTRIES = [
+  { name: "India", iso2: "IN", dial: "91" },
+  { name: "United States", iso2: "US", dial: "1" },
+  { name: "United Kingdom", iso2: "GB", dial: "44" },
+  { name: "United Arab Emirates", iso2: "AE", dial: "971" },
+  { name: "Australia", iso2: "AU", dial: "61" },
+  { name: "Canada", iso2: "CA", dial: "1" },
+  { name: "Germany", iso2: "DE", dial: "49" },
+  { name: "France", iso2: "FR", dial: "33" },
+  { name: "Singapore", iso2: "SG", dial: "65" },
+  { name: "Saudi Arabia", iso2: "SA", dial: "966" },
+  { name: "Japan", iso2: "JP", dial: "81" },
+  { name: "Nepal", iso2: "NP", dial: "977" },
+  { name: "Bangladesh", iso2: "BD", dial: "880" },
+  { name: "Sri Lanka", iso2: "LK", dial: "94" },
+  { name: "Qatar", iso2: "QA", dial: "974" },
+];
+
+const PROPERTY_SERVICES = [
+  { value: "buy", label: "Buy Property", Icon: Home },
+  { value: "lease", label: "Lease Property", Icon: Landmark },
+] as const;
+
+const PROPERTY_TYPES = {
+  buy: [
+    { value: "residential_apartment", label: "Residential • Apartment" },
+    { value: "residential_villa", label: "Residential • Villa / House" },
+    { value: "residential_plot", label: "Residential • Plot" },
+    { value: "commercial_office", label: "Commercial • Office" },
+    { value: "commercial_shop", label: "Commercial • Shop / Showroom" },
+    { value: "commercial_restaurant", label: "Commercial • Restaurant / Café" },
+    { value: "commercial_hotel", label: "Commercial • Hotel" },
+    { value: "industrial_warehouse", label: "Industrial • Warehouse" },
+  ],
+  lease: [
+    { value: "residential_apartment", label: "Residential • Apartment" },
+    { value: "residential_villa", label: "Residential • Villa / House" },
+    { value: "commercial_office", label: "Commercial • Office" },
+    { value: "commercial_shop", label: "Commercial • Shop / Showroom" },
+    { value: "commercial_restaurant", label: "Commercial • Restaurant / Café" },
+    { value: "commercial_hotel", label: "Commercial • Hotel" },
+    { value: "industrial_warehouse", label: "Industrial • Warehouse" },
+  ],
+} as const;
+
+type ServiceKey = (typeof PROPERTY_SERVICES)[number]["value"];
+type RequirementForm = {
+  name: string;
+  countryDial: string;     // e.g., "91"
+  phone: string;           // 10-digit local number (your ask)
+  email: string;
+  service: ServiceKey | "";
+  propertyType: string;    // depends on service
+  areaText: string;        // free text area/locality
+  addressText: string;     // detailed address if any
+  lat?: number | null;
+  lng?: number | null;
+  // Dynamic details
+  bedrooms?: string;
+  bathrooms?: string;
+  parking?: string;
+  furnishing?: string;     // furnished/semifurnished/unfurnished
+  budgetMin?: string;
+  budgetMax?: string;
+  leaseTerm?: string;      // 11 months / 3 years etc.
+  possession?: string;     // immediate / 3 months / 6 months
+  carpetArea?: string;     // in sqft
+  superArea?: string;      // in sqft
+  notes?: string;
+};
+
+const initial: RequirementForm = {
+  name: "",
+  countryDial: "91",
+  phone: "",
+  email: "",
+  service: "",
+  propertyType: "",
+  areaText: "",
+  addressText: "",
+  lat: null,
+  lng: null,
+  bedrooms: "",
+  bathrooms: "",
+  parking: "",
+  furnishing: "",
+  budgetMin: "",
+  budgetMax: "",
+  leaseTerm: "",
+  possession: "",
+  carpetArea: "",
+  superArea: "",
+  notes: "",
+};
+
+// validators
+const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+const isValid10 = (v: string) => /^[0-9]{10}$/.test(v); // your 10-digit rule
+
+// --- Map click hook ---
+function ClickCapture({ onPick }: { onPick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onPick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+export default function CustomerRequirement() {
+  const { toast } = useToast();
+  const [form, setForm] = useState<RequirementForm>(initial);
+  const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // debounced search to Nominatim
+  const searchRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!search.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    if (searchRef.current) window.clearTimeout(searchRef.current);
+    searchRef.current = window.setTimeout(async () => {
+      try {
+        setSearching(true);
+        const q = encodeURIComponent(search.trim());
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+        const data = await res.json();
+        setSearchResults(data?.slice(0, 6) || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setSearching(false);
+      }
+    }, 450);
+    return () => {
+      if (searchRef.current) window.clearTimeout(searchRef.current);
+    };
+  }, [search]);
+
+  const ServiceIcon = useMemo(() => {
+    const found = PROPERTY_SERVICES.find((s) => s.value === form.service);
+    return found?.Icon ?? Building2;
+  }, [form.service]);
+
+  const typesForService = useMemo(() => {
+    if (!form.service) return [];
+    return PROPERTY_TYPES[form.service];
+  }, [form.service]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phone = form.phone.replace(/\D/g, "");
+
+    if (name.length < 2) {
+      toast({ title: "Please enter your name", variant: "destructive" });
+      return;
+    }
+    if (!isValid10(phone)) {
+      toast({
+        title: "Invalid mobile number",
+        description: "Please enter exactly 10 digits.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Use a valid email like name@example.com",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!form.service) {
+      toast({ title: "Please choose Buy/Lease", variant: "destructive" });
+      return;
+    }
+    if (!form.propertyType) {
+      toast({ title: "Please select property type", variant: "destructive" });
+      return;
+    }
+    if (!form.areaText && !form.addressText) {
+      toast({
+        title: "Add an area or address",
+        description: "Tell us where you want the property.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        name,
+        country_code: `+${form.countryDial}`,
+        phone, // 10-digit
+        email,
+        service: form.service,
+        property_type: form.propertyType,
+        area_text: form.areaText,
+        address_text: form.addressText,
+        latitude: form.lat,
+        longitude: form.lng,
+        bedrooms: form.bedrooms,
+        bathrooms: form.bathrooms,
+        parking: form.parking,
+        furnishing: form.furnishing,
+        budget_min: form.budgetMin,
+        budget_max: form.budgetMax,
+        lease_term: form.leaseTerm,
+        possession: form.possession,
+        carpet_area: form.carpetArea,
+        super_area: form.superArea,
+        notes: form.notes,
+      };
+
+      const res = await API.post("/requirements", payload);
+      toast({
+        title: "We’ve got your requirement!",
+        description: "Our expert will contact you soon.",
+      });
+      setForm(initial);
+      setSearch("");
+      setSearchResults([]);
+      console.debug("Requirement saved:", res.data);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Something went wrong while saving. Please try again.";
+      const errors = err?.response?.data?.errors;
+      let detail = "";
+      if (errors && typeof errors === "object") {
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && Array.isArray(errors[firstKey]) && errors[firstKey][0]) {
+          detail = errors[firstKey][0];
+        }
+      }
+      toast({
+        title: "Could not submit",
+        description: detail || msg,
+        variant: "destructive",
+      });
+      console.error("Requirement save failed:", err?.response || err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // UI
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-600 to-lime-600" />
+        <div
+          className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_20%_20%,white_0,transparent_35%),radial-gradient(circle_at_80%_30%,white_0,transparent_40%)]"
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-24 text-white">
+          <div className="max-w-3xl">
+            <p className="uppercase tracking-wider opacity-90 text-xs mb-2">Terranexxus • Concierge</p>
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+              Tell us your property requirement
+            </h1>
+            <p className="mt-3 text-white/90 max-w-2xl">
+              Buy or lease—share your preferences, drop a pin on the map, and our experts will shortlist the best options.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FORM */}
+      <main className="relative -mt-10 md:-mt-14 pb-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="rounded-2xl border border-emerald-200/50 bg-white shadow-[0_30px_80px_rgba(16,185,129,0.08)] p-6 md:p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Contact */}
+              <div>
+                <h3 className="text-lg font-semibold">Your Details</h3>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="Your name"
+                      value={form.name}
+                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@email.com"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Phone with country code + flag */}
+                  <div className="md:col-span-2">
+                    <Label>Mobile Number</Label>
+                    <div className="mt-1 flex gap-2">
+                      <div className="w-40">
+                        <Select
+                          value={form.countryDial}
+                          onValueChange={(dial) => setForm((f) => ({ ...f, countryDial: dial }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Country" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[320px]">
+                            {COUNTRIES.map((c) => (
+                              <SelectItem key={c.iso2} value={c.dial}>
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="text-base">{emojiFlag(c.iso2)}</span>
+                                  <span className="text-sm">{c.name}</span>
+                                  <span className="ml-1 text-xs text-muted-foreground">+{c.dial}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative flex-1">
+                        
+                        <Input
+                          inputMode="numeric"
+                          placeholder="98XXXXXXXX"
+                          className="pl-4"
+                          value={form.phone}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                            setForm((f) => ({ ...f, phone: digits }));
+                          }}
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Enter exactly 10 digits (we append the country code).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Requirement */}
+              <div>
+                <h3 className="text-lg font-semibold">Requirement</h3>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Service */}
+                  <div>
+                    <Label>Service</Label>
+                    <div className="relative mt-1">
+                      <div
+                        className={cn(
+                          "absolute left-1.5 top-1/2 -translate-y-1/2",
+                          "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-200"
+                        )}
+                      >
+                        {form.service ? (
+                          <ServiceIcon className="w-4 h-4 text-emerald-700" />
+                        ) : (
+                          <Building2 className="w-4 h-4 text-emerald-700" />
+                        )}
+                      </div>
+                      <Select
+                        value={form.service}
+                        onValueChange={(v: ServiceKey) =>
+                          setForm((f) => ({ ...f, service: v, propertyType: "" }))
+                        }
+                      >
+                        <SelectTrigger className="pl-10">
+                          <SelectValue placeholder="Choose Buy or Lease" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PROPERTY_SERVICES.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Property Type (depends on service) */}
+                  <div>
+                    <Label>Property Type</Label>
+                    <Select
+                      value={form.propertyType}
+                      onValueChange={(v) => setForm((f) => ({ ...f, propertyType: v }))}
+                      disabled={!form.service}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={form.service ? "Select type" : "Choose service first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {typesForService.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Dynamic fields suggestions */}
+                  {form.propertyType?.startsWith("residential") && (
+                    <>
+                      <div>
+                        <Label>Bedrooms</Label>
+                        <Select
+                          value={form.bedrooms}
+                          onValueChange={(v) => setForm((f) => ({ ...f, bedrooms: v }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {["1", "2", "3", "4", "5+"].map((x) => (
+                              <SelectItem key={x} value={x}>{x}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Bathrooms</Label>
+                        <Select
+                          value={form.bathrooms}
+                          onValueChange={(v) => setForm((f) => ({ ...f, bathrooms: v }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {["1", "2", "3", "4", "5+"].map((x) => (
+                              <SelectItem key={x} value={x}>{x}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Furnishing</Label>
+                        <Select
+                          value={form.furnishing}
+                          onValueChange={(v) => setForm((f) => ({ ...f, furnishing: v }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {["Furnished", "Semi-furnished", "Unfurnished"].map((x) => (
+                              <SelectItem key={x} value={x}>{x}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Parking</Label>
+                        <Select
+                          value={form.parking}
+                          onValueChange={(v) => setForm((f) => ({ ...f, parking: v }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {["None", "1 Slot", "2 Slots", "3+ Slots"].map((x) => (
+                              <SelectItem key={x} value={x}>{x}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+
+                  {form.propertyType?.startsWith("commercial_") && (
+                    <>
+                      <div>
+                        <Label>Carpet Area (sqft)</Label>
+                        <Input
+                          inputMode="numeric"
+                          placeholder="e.g., 1000"
+                          value={form.carpetArea || ""}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, carpetArea: e.target.value.replace(/\D/g, "") }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Super Area (sqft)</Label>
+                        <Input
+                          inputMode="numeric"
+                          placeholder="e.g., 1200"
+                          value={form.superArea || ""}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, superArea: e.target.value.replace(/\D/g, "") }))
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Budget / Lease specifics */}
+                  <div>
+                    <Label>Budget Min (₹)</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="e.g., 5000000"
+                      value={form.budgetMin || ""}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, budgetMin: e.target.value.replace(/\D/g, "") }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Budget Max (₹)</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="e.g., 10000000"
+                      value={form.budgetMax || ""}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, budgetMax: e.target.value.replace(/\D/g, "") }))
+                      }
+                    />
+                  </div>
+
+                  {form.service === "lease" && (
+                    <>
+                      <div>
+                        <Label>Lease Term</Label>
+                        <Select
+                          value={form.leaseTerm}
+                          onValueChange={(v) => setForm((f) => ({ ...f, leaseTerm: v }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {["11 months", "1 year", "3 years", "5 years"].map((x) => (
+                              <SelectItem key={x} value={x}>{x}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Possession</Label>
+                        <Select
+                          value={form.possession}
+                          onValueChange={(v) => setForm((f) => ({ ...f, possession: v }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {["Immediate", "Within 3 months", "Within 6 months", "1 year+"].map((x) => (
+                              <SelectItem key={x} value={x}>{x}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Area & Map */}
+              <div>
+                <h3 className="text-lg font-semibold">Location</h3>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <Label>Preferred Area / Locality (text)</Label>
+                    <Input
+                      placeholder="e.g., Sector 150 Noida, BKC Mumbai, MG Road Bengaluru…"
+                      value={form.areaText}
+                      onChange={(e) => setForm((f) => ({ ...f, areaText: e.target.value }))}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Detailed Address (optional)</Label>
+                    <Input
+                      placeholder="House / Building / Street etc."
+                      value={form.addressText}
+                      onChange={(e) => setForm((f) => ({ ...f, addressText: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label>Search on Map</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        placeholder="Search a place (type and pick result)…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                      {searching && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    {!!searchResults.length && (
+                      <div className="mt-2 rounded-lg border bg-white shadow-sm divide-y max-h-60 overflow-auto">
+                        {searchResults.map((r, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              const lat = parseFloat(r.lat);
+                              const lng = parseFloat(r.lon);
+                              setForm((f) => ({ ...f, lat, lng }));
+                              setSearch(r.display_name);
+                              setSearchResults([]);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-muted/60"
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-emerald-600" />
+                              <span className="text-sm">{r.display_name}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+<div className="md:col-span-2">
+  <div className="rounded-xl overflow-hidden border h-[520px]"> {/* height here */}
+    <MapContainer
+      center={form.lat && form.lng ? [form.lat, form.lng] : [22.9734, 78.6569]} // India
+      zoom={5}
+      scrollWheelZoom
+      zoomControl
+      className="w-full h-full"
+      // Optional: keep users roughly in India
+      maxBounds={[[6.5, 68.0], [37.5, 97.5]]}        // SW & NE corners
+      maxBoundsViscosity={0.8}
+      minZoom={4}
+    >
+      <TileLayer
+        attribution='&copy; OpenStreetMap'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <ClickCapture onPick={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
+      {form.lat && form.lng && <Marker position={[form.lat, form.lng]} icon={markerIcon} />}
+    </MapContainer>
+  </div>
+  <p className="mt-2 text-xs text-muted-foreground">
+    Click on the map to drop a pin. We’ll capture exact latitude/longitude.
+  </p>
+</div>
+
+
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label>Notes (anything else we should know?)</Label>
+                <Textarea
+                  placeholder="E.g., corner plot preferred, near metro, south-facing, power backup, etc."
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <Button
+                  type="submit"
+                  className="min-w-[160px] bg-gradient-to-r from-emerald-600 to-lime-500 hover:from-emerald-700 hover:to-lime-600 text-white"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…
+                    </>
+                  ) : (
+                    "Submit Requirement"
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  We’ll contact you soon with handpicked options.
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

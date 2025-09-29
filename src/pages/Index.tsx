@@ -37,7 +37,7 @@ const Index = () => {
         <PropertyHighlight />
         <PropertyRecommendations />
         <MarketplaceServices />
-<AnalyticsSnapshot />
+        <AnalyticsSnapshot />
         <FeaturedProjects />
         <DevelopersSection />
         <ResourcesPreview />

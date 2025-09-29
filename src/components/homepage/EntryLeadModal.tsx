@@ -5,7 +5,6 @@ import {
   Landmark,
   HandCoins,
   Users,
-  MapPin,
   Phone,
   User,
   Mail,
@@ -30,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import API from "@/api/api";
 
 /* ----------------- Terranexxus services ----------------- */
 const SERVICE_OPTIONS = [
@@ -38,14 +38,14 @@ const SERVICE_OPTIONS = [
   { value: "lease",     label: "Lease Property",      Icon: Landmark },
   { value: "mortgage",  label: "Mortgage Solutions",  Icon: HandCoins },
   { value: "commercial",label: "Commercial Spaces",   Icon: Landmark },
-  { value: "coliving",  label: "Co-living / PG",       Icon: Users },
+  { value: "coliving",  label: "Co-living / PG",      Icon: Users },
 ] as const;
 
 type ServiceKey = (typeof SERVICE_OPTIONS)[number]["value"];
 
 type LeadForm = {
   name: string;
-  phone: string;
+  phone: string; // 10-digit only (no +91)
   email: string;
   service: ServiceKey | "";
 };
@@ -53,10 +53,8 @@ type LeadForm = {
 const initial: LeadForm = { name: "", phone: "", email: "", service: "" };
 
 /* --------------- validators --------------- */
-const isValidPhone = (v: string) =>
-  /^(\+?91)?[6-9]\d{9}$/.test(v.replace(/\s+/g, ""));
-const isValidEmail = (v: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+// Exactly 10 digits, starts 6-9
+const isValidPhone = (v: string) => /^[6-9]\d{9}$/.test(v.trim());
 
 /* --------------- Component --------------- */
 export default function EntryLeadModal() {
@@ -65,7 +63,6 @@ export default function EntryLeadModal() {
   const [form, setForm] = useState<LeadForm>(initial);
   const [submitting, setSubmitting] = useState(false);
 
-  // Open once per session on first page load
   useEffect(() => {
     const key = "entryLeadModalShown";
     if (!sessionStorage.getItem(key)) {
@@ -81,20 +78,24 @@ export default function EntryLeadModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.name.trim().length < 2) {
+
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phoneDigits = form.phone.replace(/\D/g, ""); // enforce digits-only
+
+    if (name.length < 2) {
       toast({ title: "Please enter your name", variant: "destructive" });
       return;
     }
-    if (!isValidPhone(form.phone)) {
+    if (!isValidPhone(phoneDigits)) {
       toast({
         title: "Invalid mobile number",
-        description:
-          "Enter a valid Indian mobile (e.g., 98XXXXXXXX or +91 98XXXXXXXX).",
+        description: "Enter a valid 10-digit Indian mobile.",
         variant: "destructive",
       });
       return;
     }
-    if (!isValidEmail(form.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast({
         title: "Invalid email",
         description: "Use a valid email like name@example.com",
@@ -109,15 +110,41 @@ export default function EntryLeadModal() {
 
     setSubmitting(true);
     try {
-      // TODO: send to backend here
-      // console.log("Lead payload:", form);
+      const payload = {
+        name,
+        phone: phoneDigits, // send 10-digit number; backend accepts with/without +91
+        email,
+        service: form.service as ServiceKey,
+      };
+
+      const res = await API.post("/modal-info", payload);
 
       toast({
         title: "Thanks! We’re on it.",
-        description: "A Terranexxus expert will call you within 2 minutes.",
+        description: "A Terranexxus expert will call you after sometime.",
       });
       setOpen(false);
       setForm(initial);
+      console.debug("ModalInfo saved:", res.data);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Something went wrong while saving. Please try again.";
+      const errors = err?.response?.data?.errors;
+      let detail = "";
+      if (errors && typeof errors === "object") {
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && Array.isArray(errors[firstKey]) && errors[firstKey][0]) {
+          detail = errors[firstKey][0];
+        }
+      }
+      toast({
+        title: "Could not submit",
+        description: detail || msg,
+        variant: "destructive",
+      });
+      console.error("ModalInfo save failed:", err?.response || err);
     } finally {
       setSubmitting(false);
     }
@@ -136,19 +163,13 @@ export default function EntryLeadModal() {
       >
         {/* Left: Brand Visual */}
         <div className="relative hidden md:block">
-          {/* brand gradient base */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-600 to-lime-600" />
-          {/* optional hero image */}
           <div
             className="absolute inset-0 bg-[url('/modal/modal1.webp')] bg-cover bg-center opacity-70"
             aria-hidden
           />
-          {/* top tint for readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
-          {/* bottom vignette */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/45 to-transparent" />
-
-          {/* content */}
           <div className="relative h-full w-full p-8 flex flex-col justify-end text-left text-white">
             <div>
               <p className="text-xs tracking-wider uppercase opacity-90">
@@ -169,9 +190,7 @@ export default function EntryLeadModal() {
         {/* Right: Form */}
         <div className="p-6 md:p-7 bg-white">
           <DialogHeader className="space-y-1">
-            <DialogTitle className="text-xl">
-              Get a quick callback
-            </DialogTitle>
+            <DialogTitle className="text-xl">Get a quick callback</DialogTitle>
             <p className="text-sm text-muted-foreground">
               Share a few details and our concierge will reach out.
             </p>
@@ -196,20 +215,34 @@ export default function EntryLeadModal() {
               </div>
             </div>
 
-            {/* Phone */}
+            {/* Phone (static +91, 10-digit only) */}
             <div>
               <Label htmlFor="lead-phone">Mobile Number</Label>
               <div className="relative mt-1">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+                {/* static +91 badge */}
+                <span
+                  className={cn(
+                    "absolute left-9 top-1/2 -translate-y-1/2",
+                    "text-xs font-medium text-slate-600 px-2 py-1",
+                    "rounded-md ring-1 ring-slate-200 bg-slate-50"
+                  )}
+                >
+                  +91
+                </span>
+
                 <Input
                   id="lead-phone"
-                  inputMode="tel"
-                  placeholder="+91 98XXXXXXXX"
-                  className="pl-10"
+                  inputMode="numeric"
+                  placeholder="98XXXXXXXX" // no +91 in placeholder
+                  className="pl-24"       // make room for +91 badge
                   value={form.phone}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, phone: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    // keep only digits, cap at 10
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setForm((f) => ({ ...f, phone: digits }));
+                  }}
                 />
               </div>
             </div>
@@ -236,7 +269,6 @@ export default function EntryLeadModal() {
             <div>
               <Label>Service Needed</Label>
               <div className="relative mt-1">
-                {/* Dynamic icon based on service */}
                 <div
                   className={cn(
                     "absolute left-1.5 top-1/2 -translate-y-1/2",
@@ -293,10 +325,7 @@ export default function EntryLeadModal() {
             <button
               className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
               aria-label="Close"
-            >
-              {/* optional close icon — we leave the button for a11y */}
-              {/* <X className="h-4 w-4" /> */}
-            </button>
+            />
           </DialogClose>
         </div>
       </DialogContent>

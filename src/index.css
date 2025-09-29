@@ -92,6 +92,17 @@
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+/* Fix Tailwind/Preflight affecting Leaflet tiles/markers */
+.leaflet-container .leaflet-tile,
+.leaflet-container .leaflet-marker-icon,
+.leaflet-container .leaflet-marker-shadow {
+  max-width: none !important;
+}
+
 
   .dark {
     /* Core dark theme */

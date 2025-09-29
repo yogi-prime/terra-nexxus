@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import API from "@/api/api"; // ✅ NEW: use your axios instance
 
 type Msg = { id: string; role: "bot" | "user"; text: string };
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -46,6 +47,13 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const randThink = () => delay(500 + Math.random() * 600);
 const uid = () => Math.random().toString(36).slice(2);
 
+/** Normalize phone to 10 digits for backend */
+function toTenDigits(p: string) {
+  const d = p.replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("91")) return d.slice(-10);
+  return d.slice(-10);
+}
+
 export default function ChatbotLeadForm() {
   const { toast } = useToast();
 
@@ -54,6 +62,7 @@ export default function ChatbotLeadForm() {
   const [step, setStep] = useState<Step>(0); // 1 name, 2 phone, 3 email, 4 service
   const [typing, setTyping] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // ✅ NEW
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -173,6 +182,37 @@ export default function ChatbotLeadForm() {
     );
     setTyping(false);
     setCompleted(true); // lock UI
+
+    // ✅ Save to backend
+    try {
+      setSubmitting(true);
+      const payload = {
+        name: name.trim(),
+        phone: toTenDigits(phone),         // send 10-digit normalized
+        email: email.trim(),
+        service,                           // e.g., "Buy Property"
+      };
+      const res = await API.post("/chatbot-leads", payload);
+      console.debug("Chatbot lead saved:", res.data);
+      toast({ title: "Saved", description: "Your details are recorded." });
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Could not save your details. Please try again.";
+      const errors = err?.response?.data?.errors;
+      let detail = "";
+      if (errors && typeof errors === "object") {
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && Array.isArray(errors[firstKey]) && errors[firstKey][0]) {
+          detail = errors[firstKey][0];
+        }
+      }
+      toast({ title: "Save failed", description: detail || msg, variant: "destructive" });
+      console.error("Chatbot lead save failed:", err?.response || err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const onEnter =
@@ -241,6 +281,7 @@ export default function ChatbotLeadForm() {
               size="sm"
               onClick={() => setIsOpen(false)}
               aria-label="Close"
+              disabled={submitting} // avoid closing mid-save
             >
               <X className="w-4 h-4" />
             </Button>
@@ -359,7 +400,7 @@ export default function ChatbotLeadForm() {
               {step === 4 && (
                 <div>
                   <Label className="text-xs font-medium">Service Needed</Label>
-                  <div className="flex gap-2 mt-1">
+                <div className="flex gap-2 mt-1">
                     <Select value={service} onValueChange={setService}>
                       <SelectTrigger className="flex-1">
                         <Home className="w-4 h-4 mr-2 text-muted-foreground" />
@@ -376,8 +417,12 @@ export default function ChatbotLeadForm() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleService} className="bg-emerald-600 hover:bg-emerald-700">
-                      Finish
+                    <Button
+                      onClick={handleService}
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                      disabled={submitting} // ✅ avoid double submit
+                    >
+                      {submitting ? "Saving..." : "Finish"}
                     </Button>
                   </div>
                 </div>
@@ -392,7 +437,7 @@ export default function ChatbotLeadForm() {
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
                 <span>Request received — our expert will call shortly.</span>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setIsOpen(false)}>
+              <Button size="sm" variant="outline" onClick={() => setIsOpen(false)} disabled={submitting}>
                 Close
               </Button>
             </div>

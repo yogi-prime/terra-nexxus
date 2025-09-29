@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Properties from "./pages/Properties";
+import CustomerRequirement from "./pages/CustomerRequirement";
 import PropertyDetail from "./pages/PropertyDetail";
 import About from "./pages/About";
 import Resources from "./pages/Resources";
@@ -12,7 +13,9 @@ import Posts from "./pages/Posts";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import TerraShare from "./pages/TerraShare";
+import PropertyShow from "./pages/PropertyShow";
 import InvestorDashboard from "./pages/InvestorDashboard";
+import AdminPropertyWizard from "./pages/AdminPropertyWizard";
 import NotFound from "./pages/NotFound";
 import AddProperty from "./pages/AddProperty";
 import MarketPlace from "./pages/Marketplace";
@@ -29,6 +32,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/property-show/:id" element={<PropertyShow />} />
+          <Route path="/admin-property" element={<AdminPropertyWizard />} />
+          <Route path="/customer-requirement" element={<CustomerRequirement />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/add-property" element={<AddProperty />} />
           <Route path="/terrashare" element={<TerraShare />} />
