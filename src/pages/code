@@ -1,1277 +1,1073 @@
-// src/pages/AdminPropertyWizardVertical.tsx
-import React, { useEffect, useState } from "react";
+// import { useState } from "react";
+// import { useQuery } from "@tanstack/react-query";
+// import API from "@/api/api";
+// import { MarketplaceHero } from "@/components/Marketplace/MarketplaceHero";
+// import { MarketplaceToolbar } from "@/components/Marketplace/MarketplaceToolbar";
+// import { MarketplaceGrid } from "@/components/Marketplace/MarketplaceGrid";
+
+// export default function Marketplace() {
+//   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+//   const [sortBy, setSortBy] = useState("newest");
+//   const [searchQuery, setSearchQuery] = useState("");
+
+//   const { data: properties = [], isLoading } = useQuery({
+//     queryKey: ["marketplace-properties"],
+//     queryFn: async () => {
+//       const res = await API.get("/properties");
+//       console.log("API data:", res.data); // 👀 check shape
+//       return res.data;
+//     },
+//   });
+
+//   // 🔎 Simple client-side search
+//   const filtered = properties.filter((p: any) =>
+//     p.property_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+//     p.address?.toLowerCase().includes(searchQuery.toLowerCase())
+//   );
+
+//   // 🔽 Robust sort logic
+//   const sorted = [...filtered].sort((a: any, b: any) => {
+//     const parseNum = (val: any) => {
+//       const num = parseInt(val, 10);
+//       return isNaN(num) ? 0 : num;
+//     };
+
+//     switch (sortBy) {
+//       case "price-low":
+//         return parseNum(a.price) - parseNum(b.price);
+
+//       case "price-high":
+//         return parseNum(b.price) - parseNum(a.price);
+
+//       case "sqft-high":
+//         return parseNum(b.property_sqft) - parseNum(a.property_sqft);
+
+//       case "sqft-low":
+//         return parseNum(a.property_sqft) - parseNum(b.property_sqft);
+
+//       case "possession":
+//         return String(a.possession || "").localeCompare(String(b.possession || ""));
+
+//       case "newest":
+//       default: {
+//         // Prefer created_at if available
+//         if (a.created_at && b.created_at) {
+//           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+//         }
+
+//         // Fallback to numeric IDs
+//         if (typeof a.id === "number" && typeof b.id === "number") {
+//           return b.id - a.id;
+//         }
+
+//         // Fallback to string compare
+//         return String(b.id).localeCompare(String(a.id));
+//       }
+//     }
+//   });
+
+//   return (
+//     <div>
+//       <MarketplaceHero />
+
+//       <MarketplaceToolbar
+//         sortBy={sortBy}
+//         onSortChange={setSortBy}
+//         searchQuery={searchQuery}
+//         onSearchChange={setSearchQuery}
+//         viewMode={viewMode}
+//         onViewModeChange={setViewMode}
+//         onFilterToggle={() => console.log("Open filters")}
+//         resultsCount={sorted.length}
+//       />
+
+//       {isLoading ? (
+//         <p className="text-center py-10">Loading properties...</p>
+//       ) : (
+//         <MarketplaceGrid properties={sorted} viewMode={viewMode} />
+//       )}
+//     </div>
+//   );
+// }
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  MapPin,
+  TrendingUp,
+  Building2,
+  Target,
+  Users,
+  Search,
+  Grid3X3,
+  List,
+  SlidersHorizontal,
+  Calendar,
+  Shield,
+  BookmarkPlus,
+  BookmarkCheck,
+  X,
+  ArrowRight,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { motion, AnimatePresence } from "framer-motion";
-import API from "@/api/api";
-
 import {
-  Building2,
-  Home,
-  Factory,
-  Warehouse,
-  MapPin,
-  Ruler,
-  IndianRupee,
-  ShieldCheck,
-  Images,
-  Settings2,
-  CheckCircle2,
-  ChevronRight,
-  ChevronLeft,
-  Loader2,
-  Info,
-} from "lucide-react";
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
-/* ---------------------------------- UI ---------------------------------- */
-function Toast({
-  open,
-  title,
-  subtitle,
-  onClose,
-}: {
-  open: boolean;
-  title?: string;
-  subtitle?: string;
-  onClose: () => void;
-}) {
-  if (!open) return null;
-  return (
-    <div className="fixed right-4 bottom-4 z-[60]">
-      <div className="rounded-xl bg-slate-900 text-white shadow-lg px-4 py-3 max-w-sm">
-        <div className="font-medium">{title}</div>
-        {subtitle && <div className="text-sm text-slate-300 mt-0.5">{subtitle}</div>}
-        <button onClick={onClose} className="mt-2 text-xs underline">
-          Dismiss
-        </button>
-      </div>
-    </div>
-  );
-}
+/* ----------------------------- types ----------------------------- */
+type Category = "Residential" | "Commercial" | "Farmhouse" | "Agri Land" | "Res Plots" | "Ind Plots";
+type RiskBand = "Low" | "Medium" | "High";
+type Status = "Open" | "Closing Soon" | "Fully Funded" | "Closed";
 
-function ErrorBanner({ list }: { list: string[] }) {
-  if (!list?.length) return null;
-  return (
-    <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 p-3">
-      <div className="font-medium">Please fix the following:</div>
-      <ul className="mt-1 list-disc pl-5 text-sm">
-        {list.slice(0, 6).map((m, i) => (
-          <li key={i}>{m}</li>
-        ))}
-        {list.length > 6 && <li>…and {list.length - 6} more</li>}
-      </ul>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-  required,
-}: {
-  label: string;
-  error?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <label className="text-sm font-medium text-slate-700">
-          {label}
-          {required && <span className="text-rose-600"> *</span>}
-        </label>
-        {error && <span className="text-xs text-rose-600">{error}</span>}
-      </div>
-      <div className={error ? "rounded-xl ring-1 ring-rose-300 p-0.5" : ""}>
-        {children}
-      </div>
-    </div>
-  );
-}
-function TextInput({
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  min,
-  max,
-}: {
-  value: any;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  min?: number;
-  max?: number;
-}) {
-  return (
-    <input
-      type={type}
-      value={value ?? ""}
-      min={min as any}
-      max={max as any}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-slate-300 focus:shadow-sm"
-    />
-  );
-}
-function Textarea({
-  value,
-  onChange,
-  placeholder,
-  rows = 4,
-}: {
-  value: any;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  rows?: number;
-}) {
-  return (
-    <textarea
-      rows={rows}
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-slate-300 focus:shadow-sm"
-    />
-  );
-}
-function Select({
-  value,
-  onChange,
-  children,
-}: {
-  value: any;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-slate-300 focus:shadow-sm"
-    >
-      <option value="">Select...</option>
-      {children}
-    </select>
-  );
-}
-function SectionTitle({
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  icon: any;
+export interface MarketProperty {
+  id: string | number;
   title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="mb-6 flex items-start gap-3">
-      <div className="rounded-xl bg-slate-900 p-2 text-white">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-600 mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  );
+  location: string; // "City, State"
+  category: Category;
+  minInvest: number;
+  targetRaise: number;
+  raisedAmount: number;
+  projectedYield: number; // %
+  tenure: number; // months
+  riskBand: RiskBand;
+  status: Status;
+  highlights: string[];
+  image: string; // URL
 }
 
-/* ------------------------------ Constants ------------------------------ */
-const SERVICE_OPTIONS = [
-  { value: "rent", label: "Rent" },
-  { value: "lease", label: "Lease" },
-  { value: "mortgage", label: "Mortgage" },
-  { value: "resale", label: "Resale" },
-  { value: "new", label: "New Sale" },
-];
+interface Filters {
+  categories: Category[];
+  state: string;
+  city: string;
+  ticketRange: [number, number];
+  yieldRange: [number, number];
+  risk: RiskBand[];
+  status: Status[];
+}
 
-const PROPERTY_TYPES = [
-  { value: "apartment", label: "Apartment/Flat", icon: Home },
-  { value: "independent_house", label: "Independent House/Villa", icon: Home },
-  { value: "studio", label: "Studio", icon: Home },
-  { value: "residential_plot", label: "Residential Plot", icon: Building2 },
-  { value: "commercial_plot", label: "Commercial Plot", icon: Building2 },
-  { value: "office", label: "Office / Co-working", icon: Building2 },
-  { value: "retail_shop", label: "Retail / Showroom", icon: Building2 },
-  { value: "warehouse", label: "Warehouse / Godown", icon: Warehouse },
-  { value: "industrial_shed", label: "Industrial Shed / Factory", icon: Factory },
-  { value: "land_agricultural", label: "Agricultural Land / Farm", icon: Factory },
-  { value: "hotel", label: "Hotel / Guest House", icon: Building2 },
-  { value: "hospital", label: "Hospital / Clinic", icon: Building2 },
-  { value: "school", label: "School / College", icon: Building2 },
-  { value: "others", label: "Others", icon: Settings2 },
-];
-
-const AMENITIES_ALL = [
-  "Power Backup",
-  "Lift",
-  "24x7 Security",
-  "CCTV",
-  "Fire Safety",
-  "Intercom",
-  "Gas Pipeline",
-  "Wi-Fi",
-  "Wheelchair Accessible",
-  "Gated Community",
-  "Club House",
-  "Gym",
-  "Swimming Pool",
-  "Kids' Play Area",
-  "Park/Garden",
-  "Indoor Games",
-  "Jogging Track",
-  "Temple",
-];
-
-const initialState: any = {
-  service: "",
-  property_type: "",
-
-  title: "",
-  project_name: "",
-  builder_name: "",
-  rera_id: "",
-  description: "",
-
-  country: "India",
-  state: "",
-  city: "",
-  locality: "",
-  address_line: "",
-  pincode: "",
-  latitude: "",
-  longitude: "",
-  google_map_link: "",
-
-  // NEW size field
-  size_sqft_text: "",
-
-  bedrooms: "",
-  bathrooms: "",
-  balconies: "",
-  furnishing: "",
-  kitchen_type: "",
-  floor_no: "",
-  total_floors: "",
-  facing: "",
-  parking_open: "",
-  parking_covered: "",
-
-  // pricing
-  price_min: "",
-  price_max: "",
-  price_actual: "",
-  price_per_sqft: "",
-  expected_rent: "",
-  security_deposit: "",
-  maintenance_monthly: "",
-  maintenance_type: "",
-  price_negotiable: false,
-  mortgage_amount: "",
-  interest_rate: "",
-  mortgage_tenure_months: "",
-  lease_duration_months: "",
-
-  // NEW project meta
-  tower_count: "",
-  total_units: "",
-
-  amenities: [],
-
-  noc_available: false,
-  loan_available: false,
-  occupancy_certificate: false,
-  completion_certificate: false,
-
-  // uploads
-  documents: [],
-  main_image: null,
-  gallery: [],
-  brochure: null,          // NEW
-  site_plan: null,         // NEW
-  flat_plans: [],          // NEW
-  video_url: "",
-  virtual_tour_url: "",
-
-  // NEW JSON fields
-  nearby: [],
-  extra_json: {},
-
-  meta_title: "",
-  meta_description: "",
-
-  owner_name: "",
-  owner_phone: "",
-  owner_email: "",
-  listed_by: "",
-  available_from: "",
-  status: "draft",
-
-  // type-specific
-  hotel_room_count: "",
-  hotel_star_rating: "",
-  dock_count: "",
-  eaves_height_ft: "",
-  floor_loading_ton: "",
-  soil_type: "",
-  irrigation: "",
-  frontage_ft: "",
-  depth_ft: "",
-  workstations: "",
-  cabins: "",
-  conference_rooms: "",
-  pantry: false,
-  washroom_inside: false,
+/* ----------------------------- utils ----------------------------- */
+const formatCurrency = (value: number) => {
+  if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr`;
+  if (value >= 100000) return `₹${(value / 100000).toFixed(1)} L`;
+  if (value >= 1000) return `₹${(value / 1000).toFixed(0)}K`;
+  return `₹${value}`;
 };
+const brandGradient = "linear-gradient(90deg,#22c55e 0%,#84cc16 50%,#facc15 100%)";
 
-const steps = [
-  { key: "classification", title: "Classification", icon: Settings2 },
-  { key: "basic", title: "Basic Details", icon: Home },
-  { key: "location", title: "Location", icon: MapPin },
-  { key: "size", title: "Size & Layout", icon: Ruler },
-  { key: "pricing", title: "Pricing & Tenure", icon: IndianRupee },
-  { key: "amenities", title: "Amenities", icon: CheckCircle2 },
-  { key: "legal", title: "Legal & Docs", icon: ShieldCheck },
-  { key: "media", title: "Media", icon: Images },
-  { key: "seo", title: "SEO", icon: Info },
-  { key: "contact", title: "Contact", icon: Building2 },
-  { key: "review", title: "Review & Submit", icon: CheckCircle2 },
-];
-
-/* --------------------------------- Page --------------------------------- */
-export default function AdminPropertyWizardVertical() {
-  const [data, setData] = useState<any>(() => {
-    const draft = localStorage.getItem("admin_prop_draft");
-    if (!draft) return initialState;
-    const saved = JSON.parse(draft);
-    return { ...initialState, ...saved, main_image: null, gallery: [], documents: [], brochure: null, site_plan: null, flat_plans: [] };
-  });
-
-  const [stepIndex, setStepIndex] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<any>({});
-  const [serverErrors, setServerErrors] = useState<Record<string, string[]>>({});
-  const [toast, setToast] = useState<{ open: boolean; title?: string; subtitle?: string }>({
-    open: false,
-  });
-
-  const fe = (name: string) => errors?.[name] || serverErrors?.[name]?.[0] || "";
+/* ----------------------------- page ----------------------------- */
+export default function Marketplace() {
+  /* ---------------- data (later: replace with API) ---------------- */
+  const [loading, setLoading] = useState(true);
+  const [properties, setProperties] = useState<MarketProperty[]>([]);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    const { main_image, gallery, documents, brochure, site_plan, flat_plans, ...rest } = data;
-    localStorage.setItem("admin_prop_draft", JSON.stringify(rest));
-  }, [data, stepIndex]);
+    // MOCK: simulate API
+    const timer = setTimeout(() => {
+      const mock: MarketProperty[] = [
+        {
+          id: 1,
+          title: "BRILLIA",
+          location: "Ahmedabad, Gujarat",
+          category: "Commercial",
+          minInvest: 5000000,
+          targetRaise: 120000000,
+          raisedAmount: 75000000,
+          projectedYield: 10.2,
+          tenure: 36,
+          riskBand: "Medium",
+          status: "Open",
+          highlights: ["Prime location", "Ample parking", "Integrated retail", "Green spaces"],
+          image:
+            "https://images.unsplash.com/photo-1494526585095-c41746248156?q=80&w=1600&auto=format&fit=crop",
+        },
+        {
+          id: 2,
+          title: "Skyline Vista",
+          location: "Pune, Maharashtra",
+          category: "Residential",
+          minInvest: 2500000,
+          targetRaise: 65000000,
+          raisedAmount: 42000000,
+          projectedYield: 11.8,
+          tenure: 30,
+          riskBand: "Low",
+          status: "Open",
+          highlights: ["Clubhouse", "Pool & Gym", "Near IT park"],
+          image:
+            "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?q=80&w=1600&auto=format&fit=crop",
+        },
+        {
+          id: 3,
+          title: "EcoWorks Towers",
+          location: "Gurugram, Haryana",
+          category: "Commercial",
+          minInvest: 4000000,
+          targetRaise: 98000000,
+          raisedAmount: 94000000,
+          projectedYield: 12.5,
+          tenure: 48,
+          riskBand: "Medium",
+          status: "Closing Soon",
+          highlights: ["LEED Gold", "Grade-A offices", "Metro connected"],
+          image:
+            "https://images.unsplash.com/photo-1469022563428-aa04fef9f2c1?q=80&w=1600&auto=format&fit=crop",
+        },
+        {
+          id: 4,
+          title: "Palm County Farm",
+          location: "Nashik, Maharashtra",
+          category: "Farmhouse",
+          minInvest: 1200000,
+          targetRaise: 18000000,
+          raisedAmount: 18000000,
+          projectedYield: 9.4,
+          tenure: 24,
+          riskBand: "Low",
+          status: "Fully Funded",
+          highlights: ["Weekend stay", "Managed farmland"],
+          image:
+            "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+        },
+        {
+          id: 5,
+          title: "Indus Logistics Park",
+          location: "Jaipur, Rajasthan",
+          category: "Ind Plots",
+          minInvest: 3000000,
+          targetRaise: 54000000,
+          raisedAmount: 19000000,
+          projectedYield: 13.2,
+          tenure: 42,
+          riskBand: "High",
+          status: "Open",
+          highlights: ["Near NH", "Dock-ready", "Eaves 30ft"],
+          image:
+            "https://images.unsplash.com/photo-1552872673-9b7b99711ebb?q=80&w=1600&auto=format&fit=crop",
+        },
+        {
+          id: 6,
+          title: "Bayview Plots",
+          location: "Kochi, Kerala",
+          category: "Res Plots",
+          minInvest: 1500000,
+          targetRaise: 20000000,
+          raisedAmount: 9000000,
+          projectedYield: 8.8,
+          tenure: 18,
+          riskBand: "Medium",
+          status: "Open",
+          highlights: ["Seaside", "Gated layout"],
+          image:
+            "https://images.unsplash.com/photo-1460472178825-e5240623afd5?q=80&w=1600&auto=format&fit=crop",
+        },
+      ];
+      setProperties(mock);
+      setLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const current = steps[stepIndex];
-  const next = () => setStepIndex((i) => Math.min(i + 1, steps.length - 1));
-  const prev = () => setStepIndex((i) => Math.max(i - 1, 0));
-  const onChange = (name: string, value: any) => setData((d: any) => ({ ...d, [name]: value }));
+  /* ---------------- view/filters/sort/search ---------------- */
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState("newest");
+  const [search, setSearch] = useState("");
 
-  const toggleAmenity = (key: string) =>
-    setData((d: any) => {
-      const exists = d.amenities.includes(key);
-      return { ...d, amenities: exists ? d.amenities.filter((a: string) => a !== key) : [...d.amenities, key] };
-    });
+  const [filters, setFilters] = useState<Filters>({
+    categories: [],
+    state: "",
+    city: "",
+    ticketRange: [100000, 10000000],
+    yieldRange: [5, 25],
+    risk: [],
+    status: [],
+  });
 
-  const handleFiles = (name: string, files: FileList | null, limit = 8) => {
-    const arr = Array.from(files || []);
-    setData((d: any) => ({ ...d, [name]: arr.slice(0, limit) }));
+  const states = [
+    "Maharashtra",
+    "Gujarat",
+    "Haryana",
+    "Karnataka",
+    "Delhi",
+    "Tamil Nadu",
+    "Rajasthan",
+    "Kerala",
+  ];
+  const citiesByState: Record<string, string[]> = {
+    Maharashtra: ["Mumbai", "Pune", "Nashik", "Nagpur"],
+    Gujarat: ["Ahmedabad", "Surat", "Vadodara"],
+    Haryana: ["Gurugram", "Faridabad"],
+    Karnataka: ["Bengaluru", "Mysuru"],
+    Delhi: ["New Delhi"],
+    "Tamil Nadu": ["Chennai", "Coimbatore"],
+    Rajasthan: ["Jaipur", "Udaipur"],
+    Kerala: ["Kochi", "Trivandrum"],
   };
 
-  const validateStep = () => {
-    const e: any = {};
-    if (current.key === "classification") {
-      if (!data.service) e.service = "Select service";
-      if (!data.property_type) e.property_type = "Select property type";
-    }
-    if (current.key === "basic") {
-      if (!data.title) e.title = "Title required";
-      if (!data.description) e.description = "Add a short description";
-    }
-    if (current.key === "location") {
-      if (!data.city) e.city = "City required";
-      if (!data.address_line) e.address_line = "Address required";
-    }
-    if (current.key === "pricing") {
-      const isSale = data.service === "resale" || data.service === "new";
-      if (data.service === "rent" && !data.price_actual && !data.expected_rent)
-        e.price_actual = "Rent required";
-      if ((isSale || data.service === "lease") && !data.price_min && !data.price_actual)
-        e.price_min = "Min price or Actual required";
-      if (data.service === "mortgage" && !data.mortgage_amount)
-        e.mortgage_amount = "Mortgage amount required";
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+  const openMobileFilter = () => setFilterOpen(true);
+  const [filterOpen, setFilterOpen] = useState(false);
 
-  const goNext = () => {
-    if (validateStep()) next();
-  };
+  /* ---------------- derived lists ---------------- */
+  const filtered = useMemo(() => {
+    let list = properties.slice();
 
-  const resetDraft = () => {
-    localStorage.removeItem("admin_prop_draft");
-    setData(initialState);
-    setStepIndex(0);
-    setServerErrors({});
-    setErrors({});
-  };
-
-  // Smart appender for FormData (skip empty, cast booleans)
-  const appendSmart = (form: FormData, key: string, val: any) => {
-    if (val === undefined || val === null) return;
-
-    const numericKeys = new Set([
-      'bedrooms','bathrooms','balconies','parking_open','parking_covered',
-      'price_min','price_max','price_actual','price_per_sqft','expected_rent','security_deposit',
-      'maintenance_monthly','mortgage_amount','interest_rate','mortgage_tenure_months','lease_duration_months',
-      // project meta
-      'tower_count','total_units',
-      // type-specific
-      'hotel_room_count','dock_count','eaves_height_ft','floor_loading_ton','frontage_ft','depth_ft',
-      'workstations','cabins','conference_rooms'
-    ]);
-    const booleanKeys = new Set([
-      "price_negotiable","noc_available","loan_available","occupancy_certificate","completion_certificate",
-      "pantry","washroom_inside",
-    ]);
-
-    // uploads
-    if (key === "main_image") {
-      if (val) form.append("main_image", val as File);
-      return;
-    }
-    if (key === "brochure") {
-      if (val) form.append("brochure", val as File);
-      return;
-    }
-    if (key === "site_plan") {
-      if (val) form.append("site_plan", val as File);
-      return;
-    }
-    if (key === "gallery" && Array.isArray(val)) {
-      val.forEach((f: File, i: number) => f && form.append(`gallery[${i}]`, f));
-      return;
-    }
-    if (key === "documents" && Array.isArray(val)) {
-      val.forEach((f: File, i: number) => f && form.append(`documents[${i}]`, f));
-      return;
-    }
-    if (key === "flat_plans" && Array.isArray(val)) {
-      val.forEach((f: File, i: number) => f && form.append(`flat_plans[${i}]`, f));
-      return;
+    // search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.location.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      );
     }
 
-    // arrays/objects to JSON (for json columns)
-    if (key === "amenities" || key === "nearby" || key === "extra_json") {
-      if ((Array.isArray(val) && val.length === 0) || (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0)) {
-        return; // skip empty
-      }
-      form.append(key, JSON.stringify(val));
-      return;
+    // category
+    if (filters.categories.length) {
+      list = list.filter((p) => filters.categories.includes(p.category));
     }
 
-    if (numericKeys.has(key)) {
-      if (val === "" || Number.isNaN(Number(val))) return;
-      form.append(key, String(val));
-      return;
+    // state/city
+    if (filters.state) {
+      list = list.filter((p) => p.location.toLowerCase().includes(filters.state.toLowerCase()));
     }
-    if (booleanKeys.has(key)) {
-      form.append(key, val ? "1" : "0");
-      return;
+    if (filters.city) {
+      list = list.filter((p) => p.location.toLowerCase().includes(filters.city.toLowerCase()));
     }
 
-    if (typeof val === "string" && val.trim() === "") return;
-    form.append(key, val as any);
-  };
+    // ticket
+    list = list.filter(
+      (p) => p.minInvest >= filters.ticketRange[0] && p.minInvest <= filters.ticketRange[1]
+    );
 
-  const submitForm = async () => {
-    setServerErrors({});
+    // yield
+    list = list.filter(
+      (p) => p.projectedYield >= filters.yieldRange[0] && p.projectedYield <= filters.yieldRange[1]
+    );
 
-    const form = new FormData();
-    const payload = { ...data };
-    if (payload.service === "rent" && payload.expected_rent && !payload.price_actual) {
-      payload.price_actual = payload.expected_rent;
+    // risk / status
+    if (filters.risk.length) list = list.filter((p) => filters.risk.includes(p.riskBand));
+    if (filters.status.length) list = list.filter((p) => filters.status.includes(p.status));
+
+    // sort
+    switch (sortBy) {
+      case "yield-high":
+        list.sort((a, b) => b.projectedYield - a.projectedYield);
+        break;
+      case "yield-low":
+        list.sort((a, b) => a.projectedYield - b.projectedYield);
+        break;
+      case "funded-high":
+        list.sort(
+          (a, b) => b.raisedAmount / b.targetRaise - a.raisedAmount / a.targetRaise
+        );
+        break;
+      case "min-invest-low":
+        list.sort((a, b) => a.minInvest - b.minInvest);
+        break;
+      case "min-invest-high":
+        list.sort((a, b) => b.minInvest - a.minInvest);
+        break;
+      case "closing-soon":
+        list.sort((a, b) => (a.status === "Closing Soon" ? -1 : 1));
+        break;
+      default:
+        // newest placeholder (no dates in mock)
+        list.sort((a, b) => Number(b.id) - Number(a.id));
     }
-    Object.entries(payload).forEach(([k, v]) => appendSmart(form, k, v));
 
-    try {
-      setSubmitting(true);
-      const res = await API.post("/admin-properties", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    return list;
+  }, [properties, search, filters, sortBy]);
 
-      setToast({ open: true, title: "Property saved", subtitle: `ID: ${res.data?.id}` });
-      localStorage.removeItem("admin_prop_draft");
-      setData(initialState);
-      setStepIndex(0);
-      setErrors({});
-      setServerErrors({});
-    } catch (err: any) {
-      const status = err?.response?.status;
-      const body = err?.response?.data;
+  /* ---------------- analytics (recharts) ---------------- */
+  const totalTarget = filtered.reduce((s, p) => s + p.targetRaise, 0);
+  const totalRaised = filtered.reduce((s, p) => s + p.raisedAmount, 0);
+  const avgMin = filtered.length ? filtered.reduce((s, p) => s + p.minInvest, 0) / filtered.length : 0;
+  const avgYield = filtered.length ? filtered.reduce((s, p) => s + p.projectedYield, 0) / filtered.length : 0;
 
-      if (status === 422 && body?.errors) {
-        setServerErrors(body.errors);
-        const firstKey = Object.keys(body.errors)[0];
-        const stepForField: Record<string, number> = {
-          service: 0,
-          property_type: 0,
-          title: 1,
-          description: 1,
-          city: 2,
-          address_line: 2,
-          size_sqft_text: 3,
-          bedrooms: 3,
-          bathrooms: 3,
-          balconies: 3,
-          parking_open: 3,
-          parking_covered: 3,
-          price_min: 4,
-          price_max: 4,
-          price_actual: 4,
-          expected_rent: 4,
-          mortgage_amount: 4,
-          interest_rate: 4,
-          mortgage_tenure_months: 4,
-          lease_duration_months: 4,
-          documents: 6,
-          main_image: 7,
-          gallery: 7,
-          brochure: 7,
-          site_plan: 7,
-          flat_plans: 7,
-          owner_email: 9,
-          owner_phone: 9,
-        };
-        if (firstKey in stepForField) setStepIndex(stepForField[firstKey]);
+  const fundingData = filtered.slice(0, 6).map((p) => ({
+    name: p.title.split(" ").slice(0, 2).join(" "),
+    target: p.targetRaise / 10000000,
+    raised: p.raisedAmount / 10000000,
+  }));
 
-        setToast({
-          open: true,
-          title: "Please correct the highlighted fields",
-          subtitle: `${Object.values(body.errors).flat().length} issues`,
-        });
-      } else {
-        setToast({
-          open: true,
-          title: "Submit failed",
-          subtitle: body?.message || `HTTP ${status || "ERR"}`,
-        });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const isResidential = ["apartment", "independent_house", "studio"].includes(data.property_type);
-  const isCommercial = [
-    "office",
-    "retail_shop",
-    "warehouse",
-    "industrial_shed",
-    "factory",
-    "hotel",
-    "hospital",
-    "school",
-  ].includes(data.property_type);
-  const isLand = ["residential_plot", "commercial_plot", "land_agricultural"].includes(
-    data.property_type
+  const categoriesData = Object.values(
+    filtered.reduce((acc: Record<string, { name: string; value: number }>, p) => {
+      acc[p.category] = acc[p.category] || { name: p.category, value: 0 };
+      acc[p.category].value += 1;
+      return acc;
+    }, {})
   );
+  const PIE_COLORS = ["#22c55e", "#84cc16", "#facc15", "#10b981", "#65a30d", "#ca8a04"];
 
+  /* ---------------- watchlist ---------------- */
+  const [watchlist, setWatchlist] = useState<MarketProperty[]>([]);
+  const toggleWatch = (p: MarketProperty) => {
+    setWatchlist((prev) =>
+      prev.find((x) => x.id === p.id) ? prev.filter((x) => x.id !== p.id) : [...prev, p]
+    );
+  };
+
+  /* ---------------- ui helpers ---------------- */
+  const statusChip = (s: Status) => {
+    switch (s) {
+      case "Open":
+        return "bg-emerald-500 text-white";
+      case "Closing Soon":
+        return "bg-amber-500 text-white";
+      case "Fully Funded":
+        return "bg-indigo-600 text-white";
+      default:
+        return "bg-slate-300 text-slate-800";
+    }
+  };
+  const riskColor = (r: RiskBand) =>
+    r === "Low" ? "text-emerald-600" : r === "Medium" ? "text-amber-600" : "text-rose-600";
+
+  /* ---------------- render ---------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <section className="mx-auto max-w-7xl px-4 md:px-6 py-8">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-fuchsia-500 to-cyan-500" />
-          <div className="p-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Create Property</h1>
-            <p className="text-slate-600 mt-1">
-              Fill details step by step. All extra fields are optional.
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url(https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2000&auto=format&fit=crop)",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b2019]/95 via-[#0b2019]/85 to-transparent" />
+        <div className="relative z-10 container mx-auto px-4 py-14 md:py-20">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              <span className="text-white">Browse Properties.</span>{" "}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: brandGradient }}
+              >
+                Own Fraction by Fraction.
+              </span>
+            </h1>
+            <p className="mt-3 text-white/80 max-w-3xl mx-auto">
+              Discover Residential, Commercial, Farmhouses, Agri Land & Plots starting from
+              <span className="font-semibold text-amber-300"> minimal investments</span>.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-[280px,1fr] gap-0 border-t border-slate-100">
-            <aside className="bg-slate-50/60 border-r border-slate-100 p-4 md:p-6 sticky top-0 self-start">
-              <nav className="space-y-2">
-                {steps.map((s, i) => {
-                  const Icon = s.icon;
-                  const active = i === stepIndex;
-                  const done = i < stepIndex;
-                  return (
-                    <button
-                      key={s.key}
-                      onClick={() => setStepIndex(i)}
-                      className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
-                        active
-                          ? "bg-emerald-600 text-white shadow"
-                          : done
-                          ? "bg-white border border-emerald-200 text-emerald-700"
-                          : "bg-white border border-slate-200 text-slate-700 hover:border-slate-300"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${
-                          active
-                            ? "bg-white text-emerald-700"
-                            : done
-                            ? "bg-emerald-600 text-white"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="text-sm font-medium">{s.title}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </aside>
-
-            <div className="p-6 md:p-8">
-              {/* Global server error banner */}
-              <ErrorBanner list={Object.values(serverErrors).flat().filter(Boolean)} />
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={current.key}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {current.key === "classification" && (
-                    <Classification data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "basic" && (
-                    <BasicDetails data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "location" && (
-                    <Location data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "size" && (
-                    <SizeLayout
-                      data={data}
-                      onChange={onChange}
-                      isResidential={isResidential}
-                      isCommercial={isCommercial}
-                      isLand={isLand}
-                      fe={fe}
-                    />
-                  )}
-                  {current.key === "pricing" && (
-                    <PricingTenure data={data} onChange={onChange} fe={fe} />
-                  )}
-                  {current.key === "amenities" && (
-                    <Amenities data={data} toggleAmenity={toggleAmenity} />
-                  )}
-                  {current.key === "legal" && (
-                    <LegalDocs data={data} onChange={onChange} onFiles={handleFiles} />
-                  )}
-                  {current.key === "media" && (
-                    <MediaSection data={data} onChange={onChange} onFiles={handleFiles} />
-                  )}
-                  {current.key === "seo" && <SEOSection data={data} onChange={onChange} />}
-                  {current.key === "contact" && (
-                    <ContactSection data={data} onChange={onChange} />
-                  )}
-                  {current.key === "review" && <ReviewSubmit data={data} />}
-                </motion.div>
-              </AnimatePresence>
-
-              <div className="mt-8 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={prev}
-                    disabled={stepIndex === 0}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </button>
-                  <button
-                    onClick={resetDraft}
-                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-rose-700 hover:bg-rose-100"
-                  >
-                    Reset Draft
-                  </button>
+          <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "Total Live", value: properties.length.toString(), icon: Building2 },
+              { label: "Avg Yield", value: `${avgYield.toFixed(1)}%`, icon: TrendingUp },
+              { label: "Target Raise", value: formatCurrency(totalTarget), icon: Target },
+              { label: "Raised So Far", value: formatCurrency(totalRaised), icon: Users },
+            ].map(({ label, value, icon: Icon }, i) => (
+              <div
+                key={i}
+                className="rounded-xl p-5 bg-white/5 backdrop-blur border border-white/15 text-white"
+              >
+                <div className="flex justify-center mb-2">
+                  <Icon className="h-7 w-7 text-amber-300" />
                 </div>
-                <div className="flex items-center gap-3">
-                  {stepIndex < steps.length - 1 ? (
-                    <button
-                      onClick={goNext}
-                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-white shadow hover:opacity-95"
-                    >
-                      Next <ChevronRight className="h-4 w-4" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={submitForm}
-                      disabled={submitting}
-                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-lime-400 px-5 py-2 text-white shadow hover:opacity-95 disabled:opacity-60"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
-                        </>
-                      ) : (
-                        <>Submit Property</>
-                      )}
-                    </button>
-                  )}
-                </div>
+                <div className="text-2xl font-bold text-center">{value}</div>
+                <p className="text-xs text-center opacity-80 mt-1">{label}</p>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <Toast
-        open={toast.open}
-        title={toast.title}
-        subtitle={toast.subtitle}
-        onClose={() => setToast({ open: false })}
-      />
+      <main className="container mx-auto px-4">
+        {/* TOOLBAR */}
+        <div className="-mt-10 relative z-20 bg-card border border-emerald-900/20 rounded-xl p-4 mb-6 shadow-lg">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex-1 flex items-center gap-4 w-full lg:w-auto">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search by title, city, category…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="text-sm text-muted-foreground whitespace-nowrap">
+                {filtered.length} results
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+              <Button variant="outline" size="sm" onClick={openMobileFilter} className="lg:hidden">
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="yield-high">Highest Yield</SelectItem>
+                  <SelectItem value="yield-low">Lowest Yield</SelectItem>
+                  <SelectItem value="funded-high">Most Funded</SelectItem>
+                  <SelectItem value="closing-soon">Closing Soon</SelectItem>
+                  <SelectItem value="min-invest-low">Min Ticket (Low→High)</SelectItem>
+                  <SelectItem value="min-invest-high">Min Ticket (High→Low)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center border border-emerald-900/20 rounded-lg p-1">
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="h-8 w-8 p-0"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="h-8 w-8 p-0"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-8">
+          {/* FILTER SIDEBAR */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
+            <div className="bg-card border border-emerald-900/20 rounded-xl p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
+              <FilterPanel
+                filters={filters}
+                setFilters={setFilters}
+                states={states}
+                citiesByState={citiesByState}
+              />
+            </div>
+          </div>
+
+          {/* MAIN CONTENT */}
+          <div className="flex-1 min-w-0">
+            {/* Analytics */}
+            <section className="mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {[
+                  { title: "Avg Min Ticket", value: formatCurrency(avgMin || 0), icon: Building2, change: "+8%" },
+                  { title: "Avg Yield", value: `${avgYield.toFixed(1)}%`, icon: TrendingUp, change: "+1.6%" },
+                  { title: "Total Target", value: formatCurrency(totalTarget), icon: Target, change: "+12%" },
+                  { title: "Raised", value: formatCurrency(totalRaised), icon: Users, change: "+5%" },
+                ].map((k, i) => (
+                  <div key={i} className="rounded-2xl bg-[#0A1A16] p-[1px]">
+                    <div className="relative overflow-hidden rounded-2xl p-5 bg-[linear-gradient(135deg,#0F2520_0%,#143229_55%,rgba(31,122,90,0.22)_100%)]">
+                      <div className="pointer-events-none absolute -bottom-10 -right-10 w-28 h-28 rounded-full bg-[radial-gradient(closest-side,#F4C84A33,#F4C84A00)]" />
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-2 rounded-lg bg-[linear-gradient(135deg,rgba(31,122,90,.18),rgba(244,200,74,.18))] text-[#F4C84A]">
+                          <k.icon className="h-5 w-5" />
+                        </div>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
+                          {k.change}
+                        </span>
+                      </div>
+                      <div
+                        className="text-2xl font-semibold bg-clip-text text-transparent"
+                        style={{ backgroundImage: "linear-gradient(90deg,#FFE08C,#F4C84A)" }}
+                      >
+                        {k.value}
+                      </div>
+                      <p className="text-sm text-white/70">{k.title}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card className="border-emerald-900/20">
+                  <CardHeader>
+                    <CardTitle>Funding Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={fundingData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                        <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                          formatter={(v: number, n: string) => [`₹${(v as number).toFixed(1)} Cr`, n === "target" ? "Target" : "Raised"]}
+                        />
+                        <Bar dataKey="target" name="target" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="raised" name="raised" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-emerald-900/20">
+                  <CardHeader>
+                    <CardTitle>Category Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoriesData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={4}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {categoriesData.map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+
+            {/* GRID / LIST */}
+            <section>
+              <div
+                className={`grid gap-6 ${
+                  viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+                }`}
+              >
+                {filtered.map((p) => {
+                  const fundedPct = (p.raisedAmount / p.targetRaise) * 100;
+                  const inWatch = !!watchlist.find((x) => x.id === p.id);
+                  return (
+                    <Card
+                      key={p.id}
+                      className="group hover:shadow-xl transition-all duration-300 border-emerald-900/20 hover:border-emerald-700/30 overflow-hidden"
+                    >
+                      {/* image */}
+                      <div className="relative h-48 bg-muted overflow-hidden">
+                        <img
+                          src={p.image}
+                          alt={p.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <Badge className={`absolute top-3 right-3 ${statusChip(p.status)}`}>{p.status}</Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleWatch(p)}
+                          className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm"
+                        >
+                          {inWatch ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+                        </Button>
+                      </div>
+
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-lg font-semibold mb-1 truncate">{p.title}</h3>
+                            <div className="flex items-center text-muted-foreground">
+                              <MapPin className="h-4 w-4 mr-1" />
+                              <span className="text-sm truncate">{p.location}</span>
+                            </div>
+                          </div>
+                          <Badge variant="outline">{p.category}</Badge>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Min Invest</p>
+                            <p className="font-semibold">{formatCurrency(p.minInvest)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Target Raise</p>
+                            <p className="font-semibold">{formatCurrency(p.targetRaise)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Projected Yield</p>
+                            <p className="font-semibold text-emerald-600 flex items-center">
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                              {p.projectedYield}%
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Tenure</p>
+                            <p className="font-semibold">{p.tenure} months</p>
+                          </div>
+                        </div>
+
+                        {/* Funding Progress (green→yellow gradient) */}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-muted-foreground">Funding Progress</span>
+                            <span className="text-sm font-medium">{fundedPct.toFixed(1)}%</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-muted overflow-hidden border border-white/50">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.min(fundedPct, 100)}%`,
+                                backgroundImage: brandGradient,
+                                transition: "width .6s ease",
+                              }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center mt-1 text-xs text-muted-foreground">
+                            <span>{formatCurrency(p.raisedAmount)} raised</span>
+                            <span>{formatCurrency(p.targetRaise)} target</span>
+                          </div>
+                        </div>
+
+                        {/* Highlights */}
+                        <div className="mb-4">
+                          <div className="flex flex-wrap gap-1">
+                            {p.highlights.map((h, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {h}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center text-sm">
+                            <Shield className={`h-4 w-4 mr-1 ${riskColor(p.riskBand)}`} />
+                            <span className={riskColor(p.riskBand)}>{p.riskBand} Risk</span>
+                          </div>
+                          <Button
+                            variant="hero"
+                            size="sm"
+                            onClick={() => (window.location.href = `/property-show/${p.id}`)}
+                          >
+                            Explore
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* CTA */}
+            <section className="mt-12 mb-8">
+              <div className="rounded-2xl p-8 text-center relative overflow-hidden"
+                   style={{ backgroundImage: brandGradient }}>
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-6 left-6"><Building2 className="h-16 w-16"/></div>
+                  <div className="absolute bottom-6 right-6"><Building2 className="h-20 w-20"/></div>
+                </div>
+                <div className="relative z-10">
+                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                    Start Investing in Properties Today
+                  </h2>
+                  <p className="text-white/90 mb-6 max-w-2xl mx-auto">
+                    Join thousands of investors building wealth through fractional real estate.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="secondary" size="lg" className="bg-white text-emerald-700 hover:bg-white/90">
+                      Begin KYC
+                    </Button>
+                    <Button variant="outline" size="lg" className="border-white/40 text-white hover:bg-white/10">
+                      Browse All Categories
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {/* MOBILE FILTER SHEET */}
+        {filterOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setFilterOpen(false)}>
+            <div className="absolute right-0 top-0 h-full w-80 bg-background" onClick={(e) => e.stopPropagation()}>
+              <div className="h-full overflow-y-auto p-6">
+                <FilterPanel
+                  filters={filters}
+                  setFilters={setFilters}
+                  states={states}
+                  citiesByState={citiesByState}
+                  onClose={() => setFilterOpen(false)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WATCHLIST DOCK */}
+        {watchlist.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-emerald-900/20 shadow-xl">
+            <div className="container mx-auto px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold">Watchlist ({watchlist.length})</div>
+                <Button variant="ghost" size="sm" onClick={() => setWatchlist([])}>
+                  Clear
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-56 overflow-y-auto">
+                {watchlist.map((p) => (
+                  <Card key={p.id} className="relative border-emerald-900/20">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setWatchlist((prev) => prev.filter((x) => x.id !== p.id))}
+                      className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-rose-600 hover:text-white"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                    <CardContent className="p-3">
+                      <div className="flex gap-3">
+                        <img src={p.image} className="w-16 h-16 rounded object-cover" />
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{p.title}</div>
+                          <div className="text-xs text-muted-foreground truncate">{p.location}</div>
+                          <div className="text-xs mt-1">
+                            <span className="font-semibold">{p.projectedYield}%</span> • {formatCurrency(p.minInvest)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
 
       <Footer />
     </div>
   );
 }
 
-/* -------------------------------- Steps -------------------------------- */
-function Classification({ data, onChange, fe }: any) {
+/* ----------------------------- Filter Panel (inline) ----------------------------- */
+function FilterPanel({
+  filters,
+  setFilters,
+  states,
+  citiesByState,
+  onClose,
+}: {
+  filters: Filters;
+  setFilters: React.Dispatch<React.SetStateAction<Filters>>;
+  states: string[];
+  citiesByState: Record<string, string[]>;
+  onClose?: () => void;
+}) {
+  const categories: Category[] = ["Residential", "Commercial", "Farmhouse", "Agri Land", "Res PLOTS" as any, "Ind Plots"].map((c: any) =>
+    c === "Res PLOTS" ? "Res Plots" : c
+  ) as Category[];
+  const statusOptions: Status[] = ["Open", "Closing Soon", "Fully Funded", "Closed"];
+  const riskOptions: RiskBand[] = ["Low", "Medium", "High"];
+
+  const toggleArr = <T extends string>(arr: T[], value: T, checked: boolean) =>
+    checked ? [...arr, value] : arr.filter((v) => v !== value);
+
   return (
     <div>
-      <SectionTitle
-        icon={Settings2}
-        title="Choose Service & Property Type"
-        subtitle="This will tailor the next steps to your needs."
-      />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field label="Service" error={fe("service")} required>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {SERVICE_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                onClick={() => onChange("service", o.value)}
-                className={`rounded-xl border px-3 py-2 text-sm ${
-                  data.service === o.value
-                    ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        <Field label="Property Type" error={fe("property_type")} required>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {PROPERTY_TYPES.map((t) => {
-              const Icon = t.icon || Building2;
-              const active = data.property_type === t.value;
-              return (
-                <button
-                  key={t.value}
-                  onClick={() => onChange("property_type", t.value)}
-                  className={`group flex items-center gap-2 rounded-xl border px-3 py-2 text-left ${
-                    active
-                      ? "border-emerald-600 bg-emerald-600 text-white"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </Field>
-      </div>
-    </div>
-  );
-}
-
-function BasicDetails({ data, onChange, fe }: any) {
-  return (
-    <div>
-      <SectionTitle icon={Home} title="Basic Details" subtitle="Title, project & a short description." />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field label="Listing Title" error={fe("title")} required>
-          <TextInput value={data.title} onChange={(v) => onChange("title", v)} placeholder="e.g., 3BHK Apartment in Sector 62" />
-        </Field>
-        <Field label="RERA ID">
-          <TextInput value={data.rera_id} onChange={(v) => onChange("rera_id", v)} placeholder="Optional" />
-        </Field>
-        <Field label="Project Name">
-          <TextInput value={data.project_name} onChange={(v) => onChange("project_name", v)} placeholder="Optional" />
-        </Field>
-        <Field label="Builder Name">
-          <TextInput value={data.builder_name} onChange={(v) => onChange("builder_name", v)} placeholder="Optional" />
-        </Field>
-        <div className="md:col-span-2">
-          <Field label="Short Description" error={fe("description")} required>
-            <Textarea value={data.description} onChange={(v) => onChange("description", v)} placeholder="Key highlights, nearby landmarks, connectivity, etc." rows={5} />
-          </Field>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-5 w-5 text-emerald-500" />
+          <h3 className="text-lg font-semibold">Filters</h3>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Location({ data, onChange, fe }: any) {
-  return (
-    <div>
-      <SectionTitle icon={MapPin} title="Location" subtitle="City, address & map link. Lat/Long optional." />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field label="Country">
-          <TextInput value={data.country} onChange={(v) => onChange("country", v)} placeholder="India" />
-        </Field>
-        <Field label="State">
-          <TextInput value={data.state} onChange={(v) => onChange("state", v)} placeholder="Uttar Pradesh" />
-        </Field>
-        <Field label="City" error={fe("city")} required>
-          <TextInput value={data.city} onChange={(v) => onChange("city", v)} placeholder="Noida" />
-        </Field>
-        <Field label="Locality / Area">
-          <TextInput value={data.locality} onChange={(v) => onChange("locality", v)} placeholder="Sector 62" />
-        </Field>
-        <Field label="Address Line" error={fe("address_line")} required>
-          <TextInput value={data.address_line} onChange={(v) => onChange("address_line", v)} placeholder="House/Building, Street, Sector" />
-        </Field>
-        <Field label="Pincode">
-          <TextInput value={data.pincode} onChange={(v) => onChange("pincode", v)} placeholder="201301" />
-        </Field>
-        <Field label="Google Map Link">
-          <TextInput value={data.google_map_link} onChange={(v) => onChange("google_map_link", v)} placeholder="https://maps.google.com/..." />
-        </Field>
-        <div className="grid grid-cols-2 gap-6">
-          <Field label="Latitude">
-            <TextInput value={data.latitude} onChange={(v) => onChange("latitude", v)} placeholder="28.6271" />
-          </Field>
-          <Field label="Longitude">
-            <TextInput value={data.longitude} onChange={(v) => onChange("longitude", v)} placeholder="77.3649" />
-          </Field>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SizeLayout({ data, onChange, isResidential, isLand, fe }: any) {
-  const isWarehouse = ["warehouse", "industrial_shed", "factory"].includes(data.property_type);
-  const isHotel = data.property_type === "hotel";
-  const isAgri = data.property_type === "land_agricultural";
-  const isOffice = data.property_type === "office";
-
-  return (
-    <div>
-      <SectionTitle icon={Ruler} title="Size & Layout" subtitle="Quick size text + floors & configuration." />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Field label="Size (text)" error={fe("size_sqft_text")}>
-          <TextInput value={data.size_sqft_text} onChange={(v) => onChange("size_sqft_text", v)} placeholder="e.g., 1350–1650 sqft (2/3 BHK)" />
-        </Field>
-
-        {isResidential && (
-          <>
-            <Field label="Bedrooms">
-              <TextInput type="number" min={0} max={20} value={data.bedrooms} onChange={(v) => onChange("bedrooms", v)} placeholder="e.g., 3" />
-            </Field>
-            <Field label="Bathrooms">
-              <TextInput type="number" min={0} max={20} value={data.bathrooms} onChange={(v) => onChange("bathrooms", v)} placeholder="e.g., 3" />
-            </Field>
-            <Field label="Balconies">
-              <TextInput type="number" min={0} max={20} value={data.balconies} onChange={(v) => onChange("balconies", v)} placeholder="e.g., 2" />
-            </Field>
-            <Field label="Furnishing">
-              <Select value={data.furnishing} onChange={(v) => onChange("furnishing", v)}>
-                <option value="unfurnished">Unfurnished</option>
-                <option value="semi_furnished">Semi Furnished</option>
-                <option value="fully_furnished">Fully Furnished</option>
-              </Select>
-            </Field>
-            <Field label="Kitchen Type">
-              <Select value={data.kitchen_type} onChange={(v) => onChange("kitchen_type", v)}>
-                <option value="closed">Closed</option>
-                <option value="open">Open</option>
-                <option value="island">Island</option>
-              </Select>
-            </Field>
-          </>
+        {onClose && (
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
         )}
-        <Field label="Floor No.">
-          <TextInput value={data.floor_no} onChange={(v) => onChange("floor_no", v)} placeholder="e.g., 7" />
-        </Field>
-        <Field label="Total Floors">
-          <TextInput value={data.total_floors} onChange={(v) => onChange("total_floors", v)} placeholder="e.g., 20" />
-        </Field>
-        <Field label="Facing">
-          <Select value={data.facing} onChange={(v) => onChange("facing", v)}>
-            <option value="north">North</option>
-            <option value="south">South</option>
-            <option value="east">East</option>
-            <option value="west">West</option>
-            <option value="north_east">North-East</option>
-            <option value="north_west">North-West</option>
-            <option value="south_east">South-East</option>
-            <option value="south_west">South-West</option>
-          </Select>
-        </Field>
-        <Field label="Open Parking (count)" error={fe("parking_open")}>
-          <TextInput type="number" min={0} value={data.parking_open} onChange={(v) => onChange("parking_open", v)} placeholder="e.g., 1" />
-        </Field>
-        <Field label="Covered Parking (count)" error={fe("parking_covered")}>
-          <TextInput type="number" min={0} value={data.parking_covered} onChange={(v) => onChange("parking_covered", v)} placeholder="e.g., 1" />
-        </Field>
       </div>
 
-      {["warehouse", "industrial_shed", "factory"].includes(data.property_type) && (
-        <div className="mt-8">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3">Warehouse / Industrial</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="Dock Count">
-              <TextInput value={data.dock_count} onChange={(v) => onChange("dock_count", v)} placeholder="e.g., 6" />
-            </Field>
-            <Field label="Eaves Height (ft)">
-              <TextInput value={data.eaves_height_ft} onChange={(v) => onChange("eaves_height_ft", v)} placeholder="e.g., 28" />
-            </Field>
-            <Field label="Floor Loading (ton)">
-              <TextInput value={data.floor_loading_ton} onChange={(v) => onChange("floor_loading_ton", v)} placeholder="e.g., 5" />
-            </Field>
-          </div>
-        </div>
-      )}
-      {data.property_type === "hotel" && (
-        <div className="mt-8">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3">Hotel / Guest House</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="Room Count">
-              <TextInput value={data.hotel_room_count} onChange={(v) => onChange("hotel_room_count", v)} placeholder="e.g., 42" />
-            </Field>
-            <Field label="Star Rating">
-              <TextInput value={data.hotel_star_rating} onChange={(v) => onChange("hotel_star_rating", v)} placeholder="e.g., 3" />
-            </Field>
-          </div>
-        </div>
-      )}
-      {data.property_type === "land_agricultural" && (
-        <div className="mt-8">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3">Agricultural Land</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="Soil Type">
-              <TextInput value={data.soil_type} onChange={(v) => onChange("soil_type", v)} placeholder="e.g., Alluvial" />
-            </Field>
-            <Field label="Irrigation">
-              <TextInput value={data.irrigation} onChange={(v) => onChange("irrigation", v)} placeholder="e.g., Canal / Borewell" />
-            </Field>
-            <Field label="Frontage (ft)">
-              <TextInput value={data.frontage_ft} onChange={(v) => onChange("frontage_ft", v)} placeholder="e.g., 120" />
-            </Field>
-            <Field label="Depth (ft)">
-              <TextInput value={data.depth_ft} onChange={(v) => onChange("depth_ft", v)} placeholder="e.g., 300" />
-            </Field>
-          </div>
-        </div>
-      )}
-      {data.property_type === "office" && (
-        <div className="mt-8">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3">Office Specific</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="Workstations">
-              <TextInput value={data.workstations} onChange={(v) => onChange("workstations", v)} placeholder="e.g., 60" />
-            </Field>
-            <Field label="Cabins">
-              <TextInput value={data.cabins} onChange={(v) => onChange("cabins", v)} placeholder="e.g., 4" />
-            </Field>
-            <Field label="Conference Rooms">
-              <TextInput value={data.conference_rooms} onChange={(v) => onChange("conference_rooms", v)} placeholder="e.g., 2" />
-            </Field>
-            <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={data.pantry}
-                  onChange={(e) => onChange("pantry", e.target.checked)}
-                />
-                Pantry
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={data.washroom_inside}
-                  onChange={(e) => onChange("washroom_inside", e.target.checked)}
-                />
-                Washroom Inside
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PricingTenure({ data, onChange, fe }: any) {
-  const isSale = data.service === "resale" || data.service === "new";
-  const isRent = data.service === "rent";
-  const isMortgage = data.service === "mortgage";
-  const isLease = data.service === "lease";
-
-  return (
-    <div>
-      <SectionTitle icon={IndianRupee} title="Pricing & Tenure" subtitle="Min/Max/Actual pricing; fields adapt to service." />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {isSale && (
-          <>
-            <Field label="Min Price (₹)" required error={fe("price_min")}>
-              <TextInput type="number" min={0} value={data.price_min} onChange={(v) => onChange("price_min", v)} placeholder="e.g., 11000000" />
-            </Field>
-            <Field label="Max Price (₹)">
-              <TextInput type="number" min={0} value={data.price_max} onChange={(v) => onChange("price_max", v)} placeholder="e.g., 13000000" />
-            </Field>
-            <Field label="Actual Price (₹)">
-              <TextInput type="number" min={0} value={data.price_actual} onChange={(v) => onChange("price_actual", v)} placeholder="Optional if unknown" />
-            </Field>
-            <Field label="Price / sq.ft (₹)">
-              <TextInput type="number" min={0} value={data.price_per_sqft} onChange={(v) => onChange("price_per_sqft", v)} placeholder="e.g., 7600" />
-            </Field>
-            <div className="md:col-span-3 flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={data.price_negotiable} onChange={(e) => onChange("price_negotiable", e.target.checked)} />
-                Price Negotiable
-              </label>
-            </div>
-          </>
-        )}
-
-        {isRent && (
-          <>
-            <Field label="Rent (Actual) per month (₹)" required error={fe("price_actual")}>
-              <TextInput
-                type="number"
-                min={0}
-                value={data.price_actual || data.expected_rent}
-                onChange={(v) => {
-                  onChange("price_actual", v);
-                  onChange("expected_rent", v);
-                }}
-                placeholder="e.g., 35000"
+      {/* Category */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Category</h4>
+        <div className="space-y-3">
+          {categories.map((c) => (
+            <div key={c} className="flex items-center space-x-2">
+              <Checkbox
+                id={`cat-${c}`}
+                checked={filters.categories.includes(c)}
+                onCheckedChange={(chk) =>
+                  setFilters((f) => ({ ...f, categories: toggleArr(f.categories, c, !!chk) }))
+                }
               />
-            </Field>
-            <Field label="Security Deposit (₹)">
-              <TextInput type="number" min={0} value={data.security_deposit} onChange={(v) => onChange("security_deposit", v)} placeholder="e.g., 70000" />
-            </Field>
-            <Field label="Maintenance (₹)">
-              <TextInput type="number" min={0} value={data.maintenance_monthly} onChange={(v) => onChange("maintenance_monthly", v)} placeholder="e.g., 2500" />
-            </Field>
-            <Field label="Maintenance Type">
-              <Select value={data.maintenance_type} onChange={(v) => onChange("maintenance_type", v)}>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-                <option value="one_time">One-time</option>
-              </Select>
-            </Field>
-            <div className="md:col-span-3">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={data.price_negotiable}
-                  onChange={(e) => onChange("price_negotiable", e.target.checked)}
-                />
-                Rent Negotiable
+              <label htmlFor={`cat-${c}`} className="text-sm font-medium">
+                {c}
               </label>
             </div>
-          </>
-        )}
-
-        {isMortgage && (
-          <>
-            <Field label="Mortgage Amount (₹)" required error={fe("mortgage_amount")}>
-              <TextInput type="number" min={0} value={data.mortgage_amount} onChange={(v) => onChange("mortgage_amount", v)} placeholder="e.g., 8000000" />
-            </Field>
-            <Field label="Interest Rate (%)" required error={fe("interest_rate")}>
-              <TextInput type="number" min={0} max={100} value={data.interest_rate} onChange={(v) => onChange("interest_rate", v)} placeholder="e.g., 8.5" />
-            </Field>
-            <Field label="Mortgage Tenure (months)" required error={fe("mortgage_tenure_months")}>
-              <TextInput type="number" min={0} value={data.mortgage_tenure_months} onChange={(v) => onChange("mortgage_tenure_months", v)} placeholder="e.g., 180" />
-            </Field>
-          </>
-        )}
-
-        {isLease && (
-          <>
-            <Field label="Min Price (₹)" required error={fe("price_min")}>
-              <TextInput type="number" min={0} value={data.price_min} onChange={(v) => onChange("price_min", v)} placeholder="e.g., 900000" />
-            </Field>
-            <Field label="Max Price (₹)">
-              <TextInput type="number" min={0} value={data.price_max} onChange={(v) => onChange("price_max", v)} placeholder="e.g., 1500000" />
-            </Field>
-            <Field label="Actual Price (₹)">
-              <TextInput type="number" min={0} value={data.price_actual} onChange={(v) => onChange("price_actual", v)} placeholder="If fixed" />
-            </Field>
-            <Field label="Lease Duration (months)" required error={fe("lease_duration_months")}>
-              <TextInput type="number" min={1} value={data.lease_duration_months} onChange={(v) => onChange("lease_duration_months", v)} placeholder="e.g., 36" />
-            </Field>
-          </>
-        )}
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
 
-function Amenities({ data, toggleAmenity }: any) {
-  return (
-    <div>
-      <SectionTitle icon={CheckCircle2} title="Amenities & Features" subtitle="Select what applies (single list, no duplicates)." />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {AMENITIES_ALL.map((a) => (
-          <button
-            key={a}
-            onClick={() => toggleAmenity(a)}
-            className={`rounded-full border px-4 py-2 text-sm ${
-              data.amenities.includes(a)
-                ? "border-emerald-600 bg-emerald-600 text-white"
-                : "border-slate-200 bg-white hover:border-slate-300"
-            }`}
+      <Separator className="my-6" />
+
+      {/* Location */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Location</h4>
+        <div className="space-y-3">
+          <Select
+            value={filters.state}
+            onValueChange={(v) => setFilters((f) => ({ ...f, state: v, city: "" }))}
           >
-            {a}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LegalDocs({ data, onChange, onFiles }: any) {
-  return (
-    <div>
-      <SectionTitle icon={ShieldCheck} title="Legal & Documents" subtitle="Mark availability and upload files (PDF/JPG)." />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={data.noc_available} onChange={(e) => onChange("noc_available", e.target.checked)} /> NOC Available
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={data.loan_available} onChange={(e) => onChange("loan_available", e.target.checked)} /> Loan Available
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={data.occupancy_certificate} onChange={(e) => onChange("occupancy_certificate", e.target.checked)} /> Occupancy Certificate
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={data.completion_certificate} onChange={(e) => onChange("completion_certificate", e.target.checked)} /> Completion Certificate
-        </label>
-      </div>
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field label="Upload Documents (multiple)">
-          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onFiles("documents", e.target.files, 12)} />
-          {!!data.documents?.length && (
-            <p className="mt-2 text-xs text-slate-600">{data.documents.length} file(s) selected</p>
-          )}
-        </Field>
-      </div>
-    </div>
-  );
-}
-
-function MediaSection({ data, onChange, onFiles }: any) {
-  const [mainPreview, setMainPreview] = useState<string | null>(null);
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
-
-  useEffect(() => {
-    const v = data.main_image as any;
-    if (v instanceof File || v instanceof Blob) {
-      const url = URL.createObjectURL(v);
-      setMainPreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    if (typeof v === "string" && v.startsWith("http")) {
-      setMainPreview(v);
-      return;
-    }
-    setMainPreview(null);
-  }, [data.main_image]);
-
-  useEffect(() => {
-    const files = Array.isArray(data.gallery) ? data.gallery : [];
-    const urls = files
-      .map((f: any) =>
-        f instanceof File || f instanceof Blob ? URL.createObjectURL(f) : typeof f === "string" ? f : ""
-      )
-      .filter(Boolean) as string[];
-    setGalleryPreviews(urls);
-    return () => {
-      files.forEach((f: any) => {
-        if (f instanceof File || f instanceof Blob) {
-          try {
-            URL.revokeObjectURL(f as any);
-          } catch {}
-        }
-      });
-    };
-  }, [data.gallery]);
-
-  const removeMain = () => onChange("main_image", null);
-  const removeFromGallery = (idx: number) => {
-    const next = [...(data.gallery || [])];
-    next.splice(idx, 1);
-    onChange("gallery", next);
-  };
-
-  return (
-    <div>
-      <SectionTitle icon={Images} title="Media" subtitle="Preview & remove images before submit." />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field label="Main Image (cover)">
-          <input type="file" accept="image/*" onChange={(e) => onChange("main_image", e.target.files?.[0] || null)} />
-          {mainPreview && (
-            <div className="relative mt-3">
-              <img src={mainPreview} alt="Main" className="h-40 w-full rounded-xl object-cover border" />
-              <button
-                type="button"
-                onClick={removeMain}
-                className="absolute top-2 right-2 rounded-full bg-rose-600/90 text-white px-2 py-1 text-xs"
-              >
-                Remove
-              </button>
-            </div>
-          )}
-        </Field>
-
-        <Field label="Gallery Images (max 8)">
-          <input type="file" multiple accept="image/*" onChange={(e) => onFiles("gallery", e.target.files, 8)} />
-          {!!galleryPreviews.length && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {galleryPreviews.map((src, i) => (
-                <div key={i} className="relative">
-                  <img src={src} alt={`g${i}`} className="h-28 w-full rounded-lg object-cover border" />
-                  <button
-                    type="button"
-                    onClick={() => removeFromGallery(i)}
-                    className="absolute top-1 right-1 rounded-full bg-rose-600/90 text-white px-1.5 py-0.5 text-xs"
-                  >
-                    ✕
-                  </button>
-                </div>
+            <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
+            <SelectContent>
+              {states.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
               ))}
-            </div>
-          )}
-        </Field>
+            </SelectContent>
+          </Select>
 
-        {/* NEW: brochure / site plan / flat plans */}
-        <Field label="Project Brochure (PDF/JPG/PNG)">
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onChange("brochure", e.target.files?.[0] || null)} />
-          {data.brochure && <p className="mt-2 text-xs text-slate-600">1 file selected</p>}
-        </Field>
-        <Field label="Site Plan (PDF/JPG/PNG)">
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onChange("site_plan", e.target.files?.[0] || null)} />
-          {data.site_plan && <p className="mt-2 text-xs text-slate-600">1 file selected</p>}
-        </Field>
-        <Field label="Flat Plans (multiple)">
-          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => onFiles("flat_plans", e.target.files, 12)} />
-          {!!data.flat_plans?.length && (
-            <p className
+          {filters.state && (
+            <Select
+              value={filters.city}
+              onValueChange={(v) => setFilters((f) => ({ ...f, city: v }))}
+            >
+              <SelectTrigger><SelectValue placeholder="Select City" /></SelectTrigger>
+              <SelectContent>
+                {citiesByState[filters.state]?.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
+
+      <Separator className="my-6" />
+
+      {/* Ticket size */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Min Investment Range</h4>
+        <div className="px-2">
+          <Slider
+            value={filters.ticketRange}
+            onValueChange={(v) => setFilters((f) => ({ ...f, ticketRange: v as [number, number] }))}
+            max={10000000}
+            min={100000}
+            step={50000}
+            className="mb-3"
+          />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{formatCurrency(filters.ticketRange[0])}</span>
+            <span>{formatCurrency(filters.ticketRange[1])}</span>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-6" />
+
+      {/* Yield */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Expected Yield Range</h4>
+        <div className="px-2">
+          <Slider
+            value={filters.yieldRange}
+            onValueChange={(v) => setFilters((f) => ({ ...f, yieldRange: v as [number, number] }))}
+            max={25}
+            min={5}
+            step={0.5}
+            className="mb-3"
+          />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{filters.yieldRange[0]}%</span>
+            <span>{filters.yieldRange[1]}%</span>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-6" />
+
+      {/* Risk */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Risk Band</h4>
+        <div className="space-y-3">
+          {(["Low", "Medium", "High"] as RiskBand[]).map((r) => (
+            <div key={r} className="flex items-center space-x-2">
+              <Checkbox
+                id={`risk-${r}`}
+                checked={filters.risk.includes(r)}
+                onCheckedChange={(chk) =>
+                  setFilters((f) => ({ ...f, risk: toggleArr(f.risk, r, !!chk) }))
+                }
+              />
+              <label htmlFor={`risk-${r}`} className="text-sm font-medium">
+                {r}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator className="my-6" />
+
+      {/* Status */}
+      <div className="mb-6">
+        <h4 className="font-medium mb-3">Funding Status</h4>
+        <div className="space-y-3">
+          {(["Open", "Closing Soon", "Fully Funded", "Closed"] as Status[]).map((s) => (
+            <div key={s} className="flex items-center space-x-2">
+              <Checkbox
+                id={`status-${s}`}
+                checked={filters.status.includes(s)}
+                onCheckedChange={(chk) =>
+                  setFilters((f) => ({ ...f, status: toggleArr(f.status, s, !!chk) }))
+                }
+              />
+              <label htmlFor={`status-${s}`} className="text-sm font-medium">
+                {s}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Button className="w-full" variant="hero" onClick={onClose}>
+        Apply Filters
+      </Button>
+    </div>
+  );
+}
