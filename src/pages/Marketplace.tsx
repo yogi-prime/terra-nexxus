@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   MapPin, TrendingUp, Building2, Target, Users, Search,
-  Grid3X3, List, SlidersHorizontal, Shield, BookmarkPlus,
-  BookmarkCheck, X, ArrowRight, Bath, BedDouble, Ruler
+  Grid3X3, List, SlidersHorizontal, X, ArrowRight, Bath, BedDouble, Ruler
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,12 @@ import { Footer } from "@/components/Footer";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell
 } from "recharts";
-import API from "@/api/api";
 import { useNavigate } from "react-router-dom";
+
+/* ----------------------------- constants ----------------------------- */
+const API_BASE = "http://127.0.0.1:8000/api/v1";
+const brandGradient = "linear-gradient(90deg,#22c55e 0%,#84cc16 50%,#facc15 100%)";
+const PLACEHOLDER_IMG = "/images/placeholder/property.jpg";
 
 /* ----------------------------- types ----------------------------- */
 type Service = "rent"|"lease"|"mortgage"|"resale"|"new"|string|null;
@@ -50,20 +53,16 @@ type UiProperty = {
 };
 
 type Filters = {
-  service: Service|"";
-  propertyType: string|"";
-  state: string|"";
-  city: string|"";
-  priceRange: [number, number];
-  minBedrooms: number;
-  maxBedrooms: number;
-  hasLoan: boolean;
-  hasNoc: boolean;
+  service: Service|""; propertyType: string|""; state: string|""; city: string|"";
+  priceRange: [number, number]; minBedrooms: number; maxBedrooms: number;
+  hasLoan: boolean; hasNoc: boolean;
 };
 
 type FilterOptions = {
   states: string[];
   citiesByState: Record<string,string[]>;
+  propertyTypes: string[];          // normalized to array of names for the UI
+  bedrooms: number[];               // normalized
 };
 
 /* ----------------------------- utils ----------------------------- */
@@ -73,8 +72,6 @@ const formatCurrency = (value?: number|null) => {
   if (value >= 1e5) return `₹${(value / 1e5).toFixed(1)} L`;
   return `₹${value.toLocaleString()}`;
 };
-const brandGradient = "linear-gradient(90deg,#22c55e 0%,#84cc16 50%,#facc15 100%)";
-const PLACEHOLDER_IMG = "/images/placeholder/property.jpg";
 
 /** Normalize resource/flat payload */
 function normalizeProperty(raw: any): UiProperty {
@@ -122,6 +119,49 @@ function normalizeProperty(raw: any): UiProperty {
   };
 }
 
+/** Safely extract array from properties response */
+function extractArray(data: any): any[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.properties)) return data.properties;
+  return [];
+}
+
+/** Normalize filter payload into uniform shapes used by UI */
+function normalizeFiltersPayload(payload: any): FilterOptions {
+  // states
+  const states = Array.isArray(payload?.states) ? payload.states : [];
+
+  // cities
+  let citiesByState: Record<string, string[]> = {};
+  const cbs = payload?.cities_by_state;
+  if (cbs && typeof cbs === "object") {
+    Object.entries(cbs).forEach(([stateName, arr]) => {
+      citiesByState[stateName] = Array.isArray(arr) ? (arr as string[]) : [];
+    });
+  }
+
+  // property types -> normalize into array of names
+  let propertyTypes: string[] = [];
+  const pts = payload?.property_types;
+  if (Array.isArray(pts)) {
+    // could be ["Apartment", "Villa"] OR [{name,count}]
+    propertyTypes = pts.map((pt: any) =>
+      typeof pt === "string" ? pt : (pt?.name ?? "")
+    ).filter(Boolean);
+  } else if (pts && typeof pts === "object") {
+    propertyTypes = Object.keys(pts); // { Apartment: 120, Villa: 20 }
+  }
+
+  // bedrooms
+  const bedrooms = Array.isArray(payload?.bedrooms) && payload.bedrooms.length
+    ? payload.bedrooms
+    : [1,2,3,4,5,6,7,8,9,10];
+
+  return { states, citiesByState, propertyTypes, bedrooms };
+}
+
 /* ----------------------------- page ----------------------------- */
 export default function Marketplace() {
   const nav = useNavigate();
@@ -130,7 +170,9 @@ export default function Marketplace() {
   const [items, setItems] = useState<UiProperty[]>([]);
   const [error, setError] = useState<string>("");
 
-  const [opts, setOpts] = useState<FilterOptions>({ states: [], citiesByState: {} });
+  const [opts, setOpts] = useState<FilterOptions>({
+    states: [], citiesByState: {}, propertyTypes: [], bedrooms: [],
+  });
 
   // view & sort
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -153,39 +195,27 @@ export default function Marketplace() {
   const [filterOpen, setFilterOpen] = useState(false);
   const openMobileFilter = () => setFilterOpen(true);
 
-  // Load filter options once
+  // Load filter options once (FETCH, no api.ts)
   useEffect(() => {
     (async () => {
       try {
-        const res = await API.get("/v1/properties/filters");
+        const res = await fetch(`${API_BASE}/properties/filters`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        setOpts(normalizeFiltersPayload(payload));
+      } catch (err) {
+        console.error("Failed to fetch filters:", err);
         setOpts({
-          states: res.data?.states ?? [],
-          citiesByState: res.data?.cities_by_state ?? {},
+          states: [],
+          citiesByState: {},
+          propertyTypes: [],
+          bedrooms: [1,2,3,4,5,6,7,8,9,10],
         });
-      } catch {
-        // silent; filters will still work as free text if API fails
       }
     })();
   }, []);
 
   /** Build server-side query params */
-  const buildParams = () => {
-    const p: Record<string, any> = {
-      q: search || undefined,
-      service: filters.service || undefined,
-      property_type: filters.propertyType || undefined,
-      state: filters.state || undefined,
-      city: filters.city || undefined,
-      price_min: filters.priceRange[0] || undefined,
-      price_max: filters.priceRange[1] || undefined,
-      min_bedrooms: filters.minBedrooms || undefined,
-      max_bedrooms: Math.max(filters.maxBedrooms, filters.minBedrooms) || undefined,
-      sort: mapSort(sortBy),
-      per_page: 24,
-    };
-    return p;
-  };
-
   const mapSort = (val: string) => {
     switch (val) {
       case "price-low": return "price";
@@ -196,30 +226,46 @@ export default function Marketplace() {
     }
   };
 
-  // Fetch data whenever filters/search/sort change
+  const buildParams = () => {
+    const p = new URLSearchParams();
+    if (search) p.set("q", search);
+    if (filters.service) p.set("service", String(filters.service));
+    if (filters.propertyType) p.set("property_type", filters.propertyType);
+    if (filters.state) p.set("state", filters.state);
+    if (filters.city) p.set("city", filters.city);
+    if (filters.priceRange?.[0]) p.set("price_min", String(filters.priceRange[0]));
+    if (filters.priceRange?.[1]) p.set("price_max", String(filters.priceRange[1]));
+    if (filters.minBedrooms) p.set("min_bedrooms", String(filters.minBedrooms));
+    if (Math.max(filters.maxBedrooms, filters.minBedrooms)) {
+      p.set("max_bedrooms", String(Math.max(filters.maxBedrooms, filters.minBedrooms)));
+    }
+    p.set("sort", mapSort(sortBy));
+    p.set("per_page", "24");
+    return p;
+  };
+
+  // Fetch data whenever filters/search/sort change (FETCH, no api.ts)
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         setLoading(true);
         setError("");
-        const res = await API.get("/v1/properties", { params: buildParams() });
-        const payload = res.data;
-        const arr = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+
+        const qs = buildParams().toString();
+        const url = `${API_BASE}/properties${qs ? `?${qs}` : ""}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+
+        const arr = extractArray(payload);
         const normalized = arr.map(normalizeProperty);
         if (alive) setItems(normalized);
       } catch (e: any) {
         let msg = "Something went wrong. Please adjust filters.";
-        if (e?.response?.status === 422) {
-          const errs = e.response?.data?.errors;
-          if (errs) {
-            const firstField = Object.keys(errs)[0];
-            if (firstField && Array.isArray(errs[firstField]) && errs[firstField][0]) {
-              msg = errs[firstField][0];
-            }
-          } else {
-            msg = "Invalid filters. Please adjust and try again.";
-          }
+        // If backend returns 422 with { errors: {...} }
+        if (e?.message?.startsWith("HTTP 422")) {
+          msg = "Invalid filters. Please adjust and try again.";
         } else if (e?.message) {
           msg = e.message;
         }
@@ -335,8 +381,8 @@ export default function Marketplace() {
               { label: "Avg Price", value: formatCurrency(avgPrice), icon: TrendingUp },
               { label: "Cities Covered", value: String(new Set(filtered.map(p => p.city).filter(Boolean)).size), icon: Target },
               { label: "States", value: String(new Set(filtered.map(p => p.state).filter(Boolean)).size), icon: Users },
-            ].map(({ label, value, icon: Icon }, i) => (
-              <div key={i} className="rounded-xl p-5 bg-white/5 backdrop-blur border border-white/15 text-white">
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="rounded-xl p-5 bg-white/5 backdrop-blur border border-white/15 text-white">
                 <div className="flex justify-center mb-2"><Icon className="h-7 w-7 text-amber-300" /></div>
                 <div className="text-2xl font-bold text-center">{value}</div>
                 <p className="text-xs text-center opacity-80 mt-1">{label}</p>
@@ -361,7 +407,7 @@ export default function Marketplace() {
             </div>
 
             <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
-              <Button variant="outline" size="sm" onClick={openMobileFilter} className="lg:hidden">
+              <Button variant="outline" size="sm" onClick={() => setFilterOpen(true)} className="lg:hidden">
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Filters
               </Button>
@@ -392,7 +438,12 @@ export default function Marketplace() {
           {/* FILTER SIDEBAR */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="bg-card border border-emerald-900/20 rounded-xl p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
-              <FilterPanel filters={filters} setFilters={setFilters} opts={opts} />
+              <FilterPanel
+                filters={filters}
+                setFilters={setFilters}
+                opts={opts}
+                onClose={undefined}
+              />
             </div>
           </div>
 
@@ -424,7 +475,7 @@ export default function Marketplace() {
                       <PieChart>
                         <Pie data={categoriesData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value"
                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                          {categoriesData.map((_, i) => (<Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
+                          {categoriesData.map((entry, i) => (<Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
                         </Pie>
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                       </PieChart>
@@ -446,7 +497,6 @@ export default function Marketplace() {
                 ))}
 
                 {!loading && filtered.map((p) => {
-                  const inWatch = !!watchlist.find((x) => x.id === p.id);
                   const priceText = p.priceActual
                     ? formatCurrency(p.priceActual)
                     : (p.priceMin || p.priceMax)
@@ -463,9 +513,6 @@ export default function Marketplace() {
                           onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG; }}
                         />
                         {p.status && <Badge className={`absolute top-3 right-3 ${statusChip(p.status)}`}>{p.status}</Badge>}
-                        <Button variant="outline" size="sm" onClick={() => toggleWatch(p)} className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm">
-                          {inWatch ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
-                        </Button>
                       </div>
 
                       <CardHeader className="pb-2">
@@ -512,7 +559,7 @@ export default function Marketplace() {
                         {!!p.amenities?.length && (
                           <div className="flex flex-wrap gap-1">
                             {p.amenities.slice(0, 4).map((h, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">{String(h)}</Badge>
+                              <Badge key={`${p.id}-amenity-${i}`} variant="secondary" className="text-xs">{String(h)}</Badge>
                             ))}
                           </div>
                         )}
@@ -572,42 +619,12 @@ export default function Marketplace() {
           <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setFilterOpen(false)}>
             <div className="absolute right-0 top-0 h-full w-80 bg-background" onClick={(e) => e.stopPropagation()}>
               <div className="h-full overflow-y-auto p-6">
-                <FilterPanel filters={filters} setFilters={setFilters} opts={opts} onClose={() => setFilterOpen(false)} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* WATCHLIST DOCK */}
-        {watchlist.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-emerald-900/20 shadow-xl">
-            <div className="container mx-auto px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-semibold">Watchlist ({watchlist.length})</div>
-                <Button variant="ghost" size="sm" onClick={() => setWatchlist([])}>Clear</Button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-56 overflow-y-auto">
-                {watchlist.map((p) => (
-                  <Card key={p.id} className="relative border-emerald-900/20">
-                    <Button variant="ghost" size="sm" onClick={() => setWatchlist(prev => prev.filter(x => x.id !== p.id))}
-                            className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-rose-600 hover:text-white">
-                      <X className="h-3 w-3" />
-                    </Button>
-                    <CardContent className="p-3">
-                      <div className="flex gap-3">
-                        <img src={p.mainImage || PLACEHOLDER_IMG} className="w-16 h-16 rounded object-cover"
-                             onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG; }} />
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">{p.title}</div>
-                          <div className="text-xs text-muted-foreground truncate">{p.locationText}</div>
-                          <div className="text-xs mt-1">
-                            {formatCurrency(p.priceActual ?? p.priceMin ?? p.priceMax ?? 0)}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                <FilterPanel
+                  filters={filters}
+                  setFilters={setFilters}
+                  opts={opts}
+                  onClose={() => setFilterOpen(false)}
+                />
               </div>
             </div>
           </div>
@@ -628,7 +645,7 @@ function FilterPanel({
   opts: FilterOptions;
   onClose?: () => void;
 }) {
-  const toggle = (b: boolean) => b ? true : false;
+  const toggle = (b: boolean) => (b ? true : false);
 
   return (
     <div>
@@ -650,11 +667,9 @@ function FilterPanel({
           <SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="any">Any</SelectItem>
-            <SelectItem value="rent">Rent</SelectItem>
-            <SelectItem value="lease">Lease</SelectItem>
-            <SelectItem value="mortgage">Mortgage</SelectItem>
-            <SelectItem value="resale">Resale</SelectItem>
-            <SelectItem value="new">New</SelectItem>
+            {["rent", "lease", "mortgage", "resale", "new"].map((svc) => (
+              <SelectItem key={`svc-${svc}`} value={svc}>{svc.charAt(0).toUpperCase() + svc.slice(1)}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -662,13 +677,26 @@ function FilterPanel({
       {/* Property Type */}
       <div className="mb-6">
         <h4 className="font-medium mb-3">Property Type</h4>
-        <Input placeholder="e.g. Apartment, Office, Plot…" value={filters.propertyType}
-               onChange={(e) => setFilters(f => ({ ...f, propertyType: e.target.value }))} />
+        <Select
+          value={filters.propertyType || "any"}
+          onValueChange={(v) => setFilters(f => ({ ...f, propertyType: v === "any" ? "" : v }))}
+          disabled={!opts.propertyTypes || opts.propertyTypes.length === 0}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select Property Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Any</SelectItem>
+            {opts.propertyTypes.map((name, index) => (
+              <SelectItem key={`ptype-${index}`} value={name}>{name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator className="my-6" />
 
-      {/* Location (dependent) */}
+      {/* Location */}
       <div className="mb-6">
         <h4 className="font-medium mb-3">Location</h4>
 
@@ -676,11 +704,16 @@ function FilterPanel({
         <Select
           value={filters.state || "any"}
           onValueChange={(v) => setFilters(f => ({ ...f, state: v === "any" ? "" : v, city: "" }))}
+          disabled={!opts.states || opts.states.length === 0}
         >
-          <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Select State" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="any">Any</SelectItem>
-            {opts.states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            {opts.states.map((state, idx) => (
+              <SelectItem key={`state-${idx}`} value={state}>{state}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -688,13 +721,15 @@ function FilterPanel({
         <Select
           value={filters.city || "any"}
           onValueChange={(v) => setFilters(f => ({ ...f, city: v === "any" ? "" : v }))}
-          disabled={!filters.state}
+          disabled={!filters.state || !(opts.citiesByState[filters.state]?.length)}
         >
-          <SelectTrigger className="mt-3"><SelectValue placeholder="Select City" /></SelectTrigger>
+          <SelectTrigger className="mt-3">
+            <SelectValue placeholder="Select City" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="any">Any</SelectItem>
-            {(opts.citiesByState[filters.state] || []).map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+            {(opts.citiesByState[filters.state] || []).map((city, idx) => (
+              <SelectItem key={`city-${idx}`} value={city}>{city}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -706,9 +741,11 @@ function FilterPanel({
       <div className="mb-6">
         <h4 className="font-medium mb-3">Price Range</h4>
         <div className="px-2">
-          <Slider value={filters.priceRange}
-                  onValueChange={(v) => setFilters(f => ({ ...f, priceRange: v as [number, number] }))}
-                  max={5_00_00_000} min={0} step={50_000} className="mb-3" />
+          <Slider
+            value={filters.priceRange}
+            onValueChange={(v) => setFilters(f => ({ ...f, priceRange: v as [number, number] }))}
+            max={5_00_00_000} min={0} step={50_000} className="mb-3"
+          />
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>{formatCurrency(filters.priceRange[0])}</span>
             <span>{formatCurrency(filters.priceRange[1])}</span>
@@ -721,26 +758,41 @@ function FilterPanel({
       {/* Bedrooms */}
       <div className="mb-6">
         <h4 className="font-medium mb-3">Bedrooms</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <Input type="number" min={0} value={filters.minBedrooms}
-                 onChange={(e) => setFilters(f => ({ ...f, minBedrooms: Math.max(0, Number(e.target.value)) }))} placeholder="Min" />
-          <Input type="number" min={0} value={filters.maxBedrooms}
-                 onChange={(e) => setFilters(f => ({ ...f, maxBedrooms: Math.max(0, Number(e.target.value)) }))} placeholder="Max" />
-        </div>
+        <Select
+          value={filters.minBedrooms === 0 ? "any" : String(filters.minBedrooms)}
+          onValueChange={(v) => setFilters(f => ({ ...f, minBedrooms: v === "any" ? 0 : Number(v) }))}
+          disabled={opts.bedrooms.length === 0}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select Bedrooms" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Any</SelectItem>
+            {opts.bedrooms.map((b) => (
+              <SelectItem key={`bed-${b}`} value={String(b)}>{b}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator className="my-6" />
 
-      {/* Legal (client-only) */}
+      {/* Legal */}
       <div className="mb-6">
         <h4 className="font-medium mb-3">Legal</h4>
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <Checkbox checked={filters.hasLoan} onCheckedChange={(c) => setFilters(f => ({ ...f, hasLoan: toggle(!!c) }))} />
+            <Checkbox
+              checked={filters.hasLoan}
+              onCheckedChange={(c) => setFilters(f => ({ ...f, hasLoan: !!c }))}
+            />
             <span className="text-sm">Loan Available</span>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox checked={filters.hasNoc} onCheckedChange={(c) => setFilters(f => ({ ...f, hasNoc: toggle(!!c) }))} />
+            <Checkbox
+              checked={filters.hasNoc}
+              onCheckedChange={(c) => setFilters(f => ({ ...f, hasNoc: !!c }))}
+            />
             <span className="text-sm">NOC Available</span>
           </div>
         </div>

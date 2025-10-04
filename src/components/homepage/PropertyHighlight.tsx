@@ -2,37 +2,42 @@ import { Play, MapPin, Calendar, Users, Wifi, Car, Trees, Shield, Star, Phone, H
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import img4 from "@/assets/4.jpg";
+
 
 export const PropertyHighlight = () => {
   const highlightProperty = {
-    title: "One World Trade Center Mumbai",
-    developer: "Lodha Group",
-    location: "Lower Parel, Mumbai",
-    price: "₹15 Cr onwards",
-    type: "Ultra Luxury Apartments",
-    image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop",
-    video: true,
-    rating: 4.9,
-    completionDate: "Dec 2024",
-    unitsAvailable: "12 units left",
-    bhk: "3-4 BHK",
-    area: "2,200-3,800 sq ft",
-    highlights: ["World's Tallest Residential Tower", "Panoramic Sea & City Views", "Sky Decks & Observatory"],
-    amenities: [
-      { icon: Wifi, label: "High-Speed Internet" },
-      { icon: Car, label: "Valet Parking" },
-      { icon: Trees, label: "Sky Gardens" },
-      { icon: Shield, label: "24/7 Security" }
-    ],
-    features: [
-      "Premium Italian marble flooring",
-      "Floor-to-ceiling windows",
-      "Smart home automation",
-      "Private elevator lobby",
-      "Designer modular kitchen",
-      "Premium bathroom fittings"
-    ]
-  };
+  title: "Brillia by Pravish",
+  developer: "Pravish Group",
+  location: "Opp. Chharodi Lake, SG Highway, Ahmedabad",
+  price: "₹93.31 Lakh onwards",
+  type: "Commercial Office & Retail Spaces",
+  image: img4,
+  video: true,
+  rating: 4.8,
+  completionDate: "Dec 2028",
+  unitsAvailable: "Multiple Units Available",
+  bhk: "NA",
+  area: "1,333-6,000 sq ft (Office), 2,000+ sq ft (Retail)",
+  highlights: [
+    "Premium Office & Retail Spaces",
+    "Strategically Located on SG Highway",
+    "Modern Amenities & Iconic Design"
+  ],
+  amenities: [
+    { icon: Wifi, label: "High-Speed Internet" },
+    { icon: Car, label: "Parking Facility" },
+    { icon: Trees, label: "Landscaped Gardens" },
+    { icon: Shield, label: "24/7 Security" }
+  ],
+  features: [
+    "Open and Transparent Design Philosophy",
+    "Clubhouse, Gym & Swimming Pool",
+    "Children's Play Area",
+    "Outdoor Activity Spaces",
+    "Panoramic Views of SG Highway"
+  ]
+};
 
   return (
     <section className="py-16  from-card via-card-premium to-primary/5">

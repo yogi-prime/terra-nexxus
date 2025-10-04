@@ -1,76 +1,82 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, MapPin, Phone, Shield, Star, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
+type ApiProperty = {
+  id: string;
+  title: string;
+  builder_name?: string;
+  media?: { main_image?: string };
+  service?: string; // "new" | "resale" | "rent" | ...
+  views?: number;
+  rating?: number;
+  layout?: { bedrooms?: number; size_text?: string };
+  location?: { locality?: string; city?: string };
+  price?: { actual?: number };
+  highlights?: string[];
+  extra?: { is_featured?: boolean };
+};
+
+const SERVICE_BADGE = (serviceType?: string) => {
+  switch ((serviceType || "").toLowerCase()) {
+    case "buy": return "bg-green-500 text-white";
+    case "rent": return "bg-blue-500 text-white";
+    case "lease": return "bg-orange-500 text-white";
+    case "mortgage": return "bg-purple-500 text-white";
+    case "new": return "bg-teal-500 text-white";
+    case "resale": return "bg-indigo-500 text-white";
+    default: return "bg-gray-500 text-white";
+  }
+};
+
 export const FeaturedProperties = () => {
   const [likedProperties, setLikedProperties] = useState<Set<string>>(new Set());
+  const [properties, setProperties] = useState<ApiProperty[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleLike = (propertyId: string) => {
-    const newLiked = new Set(likedProperties);
-    if (newLiked.has(propertyId)) {
-      newLiked.delete(propertyId);
-    } else {
-      newLiked.add(propertyId);
-    }
-    setLikedProperties(newLiked);
+    setLikedProperties((prev) => {
+      const next = new Set(prev);
+      next.has(propertyId) ? next.delete(propertyId) : next.add(propertyId);
+      return next;
+    });
   };
 
-  const featuredProperties = [
-    {
-      id: "featured-1",
-      title: "Lodha World One - Ultra Luxury",
-      developer: "Lodha Group",
-      location: "Lower Parel, Mumbai",
-      price: "₹8.5 Cr onwards",
-      image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=400&fit=crop",
-      bhk: "3-4 BHK",
-      area: "1,800-2,500 sq ft",
-      rating: 4.9,
-      serviceType: "BUY",
-      highlights: ["World's Tallest Residential Tower", "Premium Amenities", "Sea View"],
-      views: "2.1K views"
-    },
-    {
-      id: "featured-2", 
-      title: "DLF Camellias - Premium Villas",
-      developer: "DLF Limited",
-      location: "Golf Course Road, Gurgaon",
-      price: "₹12 Cr onwards",
-      image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop",
-      bhk: "4-5 BHK",
-      area: "4,000-6,000 sq ft",
-      rating: 4.8,
-      serviceType: "BUY",
-      highlights: ["Private Garden", "Golf Course View", "Luxury Interiors"],
-      views: "1.8K views"
-    },
-    {
-      id: "featured-3",
-      title: "Prestige Shantiniketan",
-      developer: "Prestige Group",
-      location: "Whitefield, Bangalore",
-      price: "₹1.2 Cr onwards",
-      image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&h=400&fit=crop",
-      bhk: "2-3 BHK",
-      area: "1,100-1,600 sq ft",
-      rating: 4.7,
-      serviceType: "BUY",
-      highlights: ["IT Hub Location", "Metro Connectivity", "World-class Amenities"],
-      views: "3.2K views"
-    }
-  ];
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const getServiceBadgeColor = (serviceType: string) => {
-    switch (serviceType) {
-      case "BUY": return "bg-green-500 text-white";
-      case "RENT": return "bg-blue-500 text-white";
-      case "LEASE": return "bg-orange-500 text-white";
-      case "MORTGAGE": return "bg-purple-500 text-white";
-      default: return "bg-gray-500 text-white";
-    }
-  };
+        const url = `http://127.0.0.1:8000/api/v1/properties?per_page=10&sort=-created_at&status=active`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        const list: ApiProperty[] = (json?.data ?? json?.properties ?? []);
+        const filtered = list.filter(
+          (p) => p?.extra?.is_featured || (p?.service || "").toLowerCase() === "new"
+        );
+
+        setProperties(filtered);
+      } catch (err: any) {
+        console.error("Error fetching properties:", err);
+        setError("Failed to load featured properties");
+        setProperties([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
+
+  if (loading) return <p className="text-center py-10">Loading properties...</p>;
+  if (error) return <p className="text-center py-10 text-red-500">{error}</p>;
+  if (!properties.length) return <p className="text-center py-10">No featured properties available.</p>;
 
   return (
     <section className="py-16 bg-background">
@@ -80,44 +86,42 @@ export const FeaturedProperties = () => {
             Featured Premium Properties
           </h2>
           <p className="text-lg text-muted-foreground">
-            Handpicked luxury properties from India's top developers
+            Handpicked luxury properties from India&apos;s top developers
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {featuredProperties.map((property) => (
+          {properties.map((property) => (
             <Card key={property.id} className="group overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500">
               <div className="relative overflow-hidden">
                 <img
-                  src={property.image}
+                  src={property.media?.main_image || ""}
                   alt={property.title}
                   className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-                
-                {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
                 <button
                   onClick={() => toggleLike(property.id)}
                   className="absolute top-4 right-4 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
                 >
                   <Heart
                     className={`h-5 w-5 ${
-                      likedProperties.has(property.id) 
-                        ? "fill-red-500 text-red-500" 
+                      likedProperties.has(property.id)
+                        ? "fill-red-500 text-red-500"
                         : "text-gray-600"
                     }`}
                   />
                 </button>
 
-                <Badge className={`absolute top-4 left-4 ${getServiceBadgeColor(property.serviceType)} font-semibold`}>
-                  {property.serviceType}
+                <Badge className={`absolute top-4 left-4 ${SERVICE_BADGE(property.service)} font-semibold`}>
+                  {(property.service || "").toUpperCase()}
                 </Badge>
 
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="flex items-center gap-2 text-white mb-2">
                     <Eye className="h-4 w-4" />
-                    <span className="text-sm">{property.views}</span>
+                    <span className="text-sm">{property.views ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -126,10 +130,10 @@ export const FeaturedProperties = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{property.rating}</span>
+                    <span className="text-sm font-medium">{property.rating ?? 0}</span>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {property.bhk}
+                    {property.layout?.bedrooms ? `${property.layout.bedrooms} BHK` : "N/A"}
                   </Badge>
                   <div className="flex items-center gap-1 bg-success/20 text-success px-2 py-1 rounded-full text-xs">
                     <Shield className="h-3 w-3" />
@@ -137,32 +141,35 @@ export const FeaturedProperties = () => {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-foreground mb-2">
-                  {property.title}
-                </h3>
-                
-                <p className="text-sm text-primary font-medium mb-3">{property.developer}</p>
-                
+                <h3 className="text-xl font-bold text-foreground mb-2">{property.title}</h3>
+                <p className="text-sm text-primary font-medium mb-3">{property.builder_name || "—"}</p>
+
                 <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
                   <MapPin className="h-4 w-4" />
-                  <span>{property.location}</span>
+                  <span>
+                    {property.location?.locality || "—"},{" "}
+                    {property.location?.city || "—"}
+                  </span>
                 </div>
 
                 <div className="mb-4">
-                  <span className="text-2xl font-bold text-foreground">{property.price}</span>
-                  <p className="text-sm text-muted-foreground">{property.area}</p>
+                  <span className="text-2xl font-bold text-foreground">
+                    {property.price?.actual
+                      ? `₹${Number(property.price.actual).toLocaleString("en-IN")}`
+                      : "Price on request"}
+                  </span>
+                  <p className="text-sm text-muted-foreground">{property.layout?.size_text || ""}</p>
                 </div>
 
-                {/* Highlights */}
-                <div className="mb-4">
-                  <div className="flex flex-wrap gap-2">
-                    {property.highlights.map((highlight, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {highlight}
+                {!!property.highlights?.length && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {property.highlights.map((h, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {h}
                       </Badge>
                     ))}
                   </div>
-                </div>
+                )}
 
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1">

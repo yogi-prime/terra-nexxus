@@ -1,102 +1,123 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Building2, Users, IndianRupee, Home, HandCoins, Landmark, KeyRound } from "lucide-react";
 
-/* =========
-   TYPES
-   ========= */
-type ServiceKey = "buy" | "rent" | "lease" | "mortgage";
+type ServiceKey = "buy" | "rent" | "lease" | "mortgage" | "resale" | "new";
 
 type SnapshotData = {
   totals: {
-    liveListings: number;      // total active listings
-    valueCr: number;           // total marketplace value in ₹ Cr
+    liveListings: number;
+    valueCr: number;
     cities: number;
     developers: number;
-    byService: Record<ServiceKey, number>; // counts per service
+    byService: Record<ServiceKey, number>;
   };
-  // monthly listings added / active (for tiny bar chart)
   trendMonthly: { month: string; listings: number }[];
-  // % split by property type/category
   categorySplit: { name: string; value: number; color?: string }[];
-  // top momentum projects
   topListings: Array<{
     name: string;
     city: string;
     service: ServiceKey;
-    funded?: number;         // if mortgage/lease campaign – percent
-    priceCr?: number;        // ticket/starting price in Cr
+    funded?: number;
+    priceCr?: number;
     tag?: "Closing Soon" | "Hot" | "New" | "Open";
   }>;
 };
 
-/* =========
-   DEFAULT MOCK (safe to replace with live data)
-   ========= */
-const DEFAULT_DATA: SnapshotData = {
-  totals: {
-    liveListings: 50862,
-    valueCr: 5120,
-    cities: 18,
-    developers: 520,
-    byService: {
-      buy: 27430,
-      rent: 15680,
-      lease: 5280,
-      mortgage: 2472,
-    },
-  },
-  trendMonthly: [
-    { month: "Jan", listings: 2800 },
-    { month: "Feb", listings: 3200 },
-    { month: "Mar", listings: 3650 },
-    { month: "Apr", listings: 4200 },
-    { month: "May", listings: 4700 },
-    { month: "Jun", listings: 5050 },
-    { month: "Jul", listings: 5400 },
-    { month: "Aug", listings: 5750 },
-    { month: "Sep", listings: 6120 },
-    { month: "Oct", listings: 6540 },
-    { month: "Nov", listings: 6880 },
-    { month: "Dec", listings: 7250 },
-  ],
-  categorySplit: [
-    { name: "Residential", value: 52, color: "hsl(var(--primary))" },
-    { name: "Commercial", value: 28, color: "hsl(var(--accent))" },
-    { name: "Plots / Land", value: 12, color: "hsl(var(--success))" },
-    { name: "Warehouse", value: 8, color: "hsl(var(--warning))" },
-  ],
-  topListings: [
-    { name: "One World Trade Center", city: "Mumbai", service: "buy", priceCr: 15, tag: "Hot" },
-    { name: "Cyber Hub Extension", city: "Gurgaon", service: "lease", priceCr: 1.2, tag: "Closing Soon" },
-    { name: "Skyline Residences", city: "Bengaluru", service: "rent", priceCr: 0.02, tag: "New" },
-    { name: "Green Valley Plots", city: "Pune", service: "buy", priceCr: 0.85, tag: "Open" },
-    { name: "Capital Park Mortgage", city: "Ahmedabad", service: "mortgage", funded: 82, priceCr: 3.4, tag: "Hot" },
-  ],
+const serviceMeta: Record<ServiceKey, { label: string; Icon: any; className: string }> = {
+  buy: { label: "Buy", Icon: Home, className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  rent: { label: "Rent", Icon: KeyRound, className: "bg-sky-50 text-sky-700 border-sky-200" },
+  lease: { label: "Lease", Icon: Landmark, className: "bg-amber-50 text-amber-700 border-amber-200" },
+  mortgage: { label: "Mortgage", Icon: HandCoins, className: "bg-violet-50 text-violet-700 border-violet-200" },
+  resale: { label: "Resale", Icon: Home, className: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  new: { label: "New Sale", Icon: Home, className: "bg-pink-50 text-pink-700 border-pink-200" },
 };
 
-/* =========
-   UTILS
-   ========= */
 const nfmt = (n: number) => n.toLocaleString("en-IN");
 const pct = (n: number) => `${Math.round(n)}%`;
-const serviceMeta: Record<
-  ServiceKey,
-  { label: string; Icon: any; className: string }
-> = {
-  buy:       { label: "Buy",      Icon: Home,       className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  rent:      { label: "Rent",     Icon: KeyRound,   className: "bg-sky-50 text-sky-700 border-sky-200" },
-  lease:     { label: "Lease",    Icon: Landmark,   className: "bg-amber-50 text-amber-700 border-amber-200" },
-  mortgage:  { label: "Mortgage", Icon: HandCoins,  className: "bg-violet-50 text-violet-700 border-violet-200" },
-};
 
-/* =========
-   COMPONENT
-   ========= */
-export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData }) => {
-  const { totals, trendMonthly, categorySplit, topListings } = data;
+// Use the same host you’ve been testing locally
+const ORIGIN = "http://127.0.0.1:8000";
+const CANDIDATE_PATHS = [
+  "/api/v1/analytics-snapshot",
+  "/api/analytics-snapshot",
+  "/api/v1/analytics/snapshot",
+  "/api/analytics/snapshot",
+];
 
-  const maxTrend = Math.max(...trendMonthly.map((d) => d.listings)) || 1;
+// Try multiple endpoints until one returns 200
+async function fetchSnapshot(): Promise<SnapshotData | null> {
+  for (const path of CANDIDATE_PATHS) {
+    try {
+      const res = await fetch(`${ORIGIN}${path}`);
+      if (!res.ok) {
+        // continue trying other candidates
+        continue;
+      }
+      const json = await res.json();
+
+      // normalize possible shapes
+      const data: SnapshotData = {
+        totals: {
+          liveListings: json?.totals?.liveListings ?? 0,
+          valueCr: json?.totals?.valueCr ?? 0,
+          cities: json?.totals?.cities ?? 0,
+          developers: json?.totals?.developers ?? 0,
+          byService: json?.totals?.byService ?? { buy:0,rent:0,lease:0,mortgage:0,resale:0,new:0 },
+        },
+        trendMonthly: Array.isArray(json?.trendMonthly) ? json.trendMonthly : [],
+        categorySplit: Array.isArray(json?.categorySplit) ? json.categorySplit : [],
+        topListings: Array.isArray(json?.topListings) ? json.topListings : [],
+      };
+
+      console.info("[AnalyticsSnapshot] Using endpoint:", path);
+      return data;
+    } catch {
+      // swallow and try next
+    }
+  }
+  return null;
+}
+
+export const AnalyticsSnapshot = () => {
+  const [totals, setTotals] = useState<Record<ServiceKey, number>>({
+    buy: 0, rent: 0, lease: 0, mortgage: 0, resale: 0, new: 0
+  });
+  const [liveListings, setLiveListings] = useState(0);
+  const [valueCr, setValueCr] = useState(0);
+  const [cities, setCities] = useState(0);
+  const [developers, setDevelopers] = useState(0);
+
+  const [trendMonthly, setTrendMonthly] = useState<{ month: string; listings: number }[]>([]);
+  const [categorySplit, setCategorySplit] = useState<{ name: string; value: number; color?: string }[]>([]);
+  const [topListings, setTopListings] = useState<SnapshotData["topListings"]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const data = await fetchSnapshot();
+      if (!mounted) return;
+
+      if (data) {
+        setTotals(data.totals?.byService || { buy: 0, rent: 0, lease: 0, mortgage: 0, resale: 0, new: 0 });
+        setLiveListings(data.totals?.liveListings ?? 0);
+        setValueCr(data.totals?.valueCr ?? 0);
+        setCities(data.totals?.cities ?? 0);
+        setDevelopers(data.totals?.developers ?? 0);
+        setTrendMonthly(data.trendMonthly ?? []);
+        setCategorySplit(data.categorySplit ?? []);
+        setTopListings(data.topListings ?? []);
+      } else {
+        console.error("Failed to fetch totals, using fallback values (all endpoints 404/failed)");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const maxTrend = Math.max(...trendMonthly.map(d => d.listings), 1);
 
   return (
     <section className="py-20 bg-secondary/30">
@@ -108,14 +129,14 @@ export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData
           </p>
         </div>
 
-        {/* KPI STRIP */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           <Card className="hover-glow">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Live Listings</CardTitle>
             </CardHeader>
             <CardContent className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{nfmt(totals.liveListings)}</div>
+              <div className="text-2xl font-bold">{nfmt(liveListings)}</div>
               <TrendingUp className="h-5 w-5 text-primary" />
             </CardContent>
           </Card>
@@ -126,7 +147,7 @@ export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData
               <CardDescription>₹ Cr (active)</CardDescription>
             </CardHeader>
             <CardContent className="flex items-end justify-between">
-              <div className="text-2xl font-bold">₹{nfmt(totals.valueCr)}</div>
+              <div className="text-2xl font-bold">₹{nfmt(valueCr)}</div>
               <IndianRupee className="h-5 w-5 text-primary" />
             </CardContent>
           </Card>
@@ -136,7 +157,7 @@ export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData
               <CardTitle className="text-sm font-medium text-muted-foreground">Cities</CardTitle>
             </CardHeader>
             <CardContent className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{totals.cities}</div>
+              <div className="text-2xl font-bold">{cities}</div>
               <Building2 className="h-5 w-5 text-accent" />
             </CardContent>
           </Card>
@@ -146,13 +167,13 @@ export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData
               <CardTitle className="text-sm font-medium text-muted-foreground">Developers</CardTitle>
             </CardHeader>
             <CardContent className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{nfmt(totals.developers)}</div>
+              <div className="text-2xl font-bold">{nfmt(developers)}</div>
               <Users className="h-5 w-5 text-success" />
             </CardContent>
           </Card>
 
-          {/* Service splits */}
-          {(["buy", "rent", "lease", "mortgage"] as ServiceKey[]).map((s) => {
+          {/* Service Cards */}
+          {(["buy","rent","lease","mortgage","resale","new"] as ServiceKey[]).map(s => {
             const meta = serviceMeta[s];
             return (
               <Card key={s} className="hover-glow">
@@ -161,26 +182,22 @@ export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData
                   <CardDescription>Active</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-end justify-between">
-                  <div className="text-2xl font-bold">{nfmt(totals.byService[s])}</div>
-                  <meta.Icon className={`h-5 w-5`} />
+                  <div className="text-2xl font-bold">{nfmt(totals[s] || 0)}</div>
+                  <meta.Icon className="h-5 w-5" />
                 </CardContent>
               </Card>
             );
-          }).slice(0,2) /* show Buy & Rent here to fit small screens */}
+          })}
         </div>
 
-        {/* SERVICE BADGE ROW (all four) */}
+        {/* Service Badges */}
         <div className="flex flex-wrap gap-3 mb-10">
-          {(["buy","rent","lease","mortgage"] as ServiceKey[]).map((s) => {
+          {(["buy","rent","lease","mortgage","resale","new"] as ServiceKey[]).map(s => {
             const meta = serviceMeta[s];
-            const count = totals.byService[s];
-            const share = (count / Math.max(1, totals.liveListings)) * 100;
+            const count = totals[s] || 0;
+            const share = (count / Math.max(1, liveListings)) * 100;
             return (
-              <Badge
-                key={s}
-                variant="outline"
-                className={`border ${meta.className} px-3 py-1.5 text-sm`}
-              >
+              <Badge key={s} variant="outline" className={`border ${meta.className} px-3 py-1.5 text-sm`}>
                 <meta.Icon className="h-4 w-4 mr-1.5" />
                 {meta.label}: <span className="font-semibold ml-1">{nfmt(count)}</span>
                 <span className="ml-1 text-xs opacity-70">({pct(share)})</span>
@@ -198,9 +215,7 @@ export const AnalyticsSnapshot = ({ data = DEFAULT_DATA }: { data?: SnapshotData
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Monthly Active Listings
               </CardTitle>
-              <CardDescription>
-                Growth across the last 12 months
-              </CardDescription>
+              <CardDescription>Growth across the last 12 months</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-end justify-between gap-2 px-4">
