@@ -85,7 +85,7 @@ export const HeroSearchSection = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(false);
 
-  const API_BASE = "http://127.0.0.1:8000/api/v1";
+  const API_BASE = "https://app.terranexxus.com/api/v1";
 
   // Fetch cities
   useEffect(() => {

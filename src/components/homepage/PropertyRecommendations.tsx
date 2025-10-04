@@ -21,7 +21,7 @@ interface Property {
   image?: string;
 }
 
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+const API_BASE = "https://app.terranexxus.com/api/v1";
 const FALLBACK_IMG = "https://via.placeholder.com/640x400?text=No+Image";
 
 function mapToProperty(p: BackendProperty): Property {

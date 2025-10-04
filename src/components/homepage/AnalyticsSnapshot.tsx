@@ -38,7 +38,7 @@ const nfmt = (n: number) => n.toLocaleString("en-IN");
 const pct = (n: number) => `${Math.round(n)}%`;
 
 // Use the same host you’ve been testing locally
-const ORIGIN = "http://127.0.0.1:8000";
+const ORIGIN = "https://app.terranexxus.com";
 const CANDIDATE_PATHS = [
   "/api/v1/analytics-snapshot",
   "/api/analytics-snapshot",

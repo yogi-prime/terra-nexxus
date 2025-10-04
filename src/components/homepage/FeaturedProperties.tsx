@@ -51,7 +51,7 @@ export const FeaturedProperties = () => {
         setLoading(true);
         setError(null);
 
-        const url = `http://127.0.0.1:8000/api/v1/properties?per_page=10&sort=-created_at&status=active`;
+        const url = `https://app.terranexxus.com/api/v1/properties?per_page=10&sort=-created_at&status=active`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();

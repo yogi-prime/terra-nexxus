@@ -30,7 +30,7 @@ export const PropertyVideos = () => {
         setLoading(true);
         setError(null);
 
-        const url = `http://127.0.0.1:8000/api/v1/property-videos`;
+        const url = `https://app.terranexxus.com/api/v1/property-videos`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();

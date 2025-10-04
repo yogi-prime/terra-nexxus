@@ -28,7 +28,7 @@ type Project = {
   media: { main_image?: string | null };
 };
 
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+const API_BASE = "https://app.terranexxus.com/api/v1";
 const FALLBACK_IMG = "https://via.placeholder.com/800x480?text=No+Image";
 
 function normalizeProject(p: BackendProperty): Project {

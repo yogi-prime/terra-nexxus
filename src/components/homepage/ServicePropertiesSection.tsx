@@ -53,7 +53,7 @@ export const ServicePropertiesSection = () => {
     const fetchServices = async () => {
       try {
         setError(null);
-        const res = await fetch("http://127.0.0.1:8000/api/v1/properties/filters");
+        const res = await fetch("https://app.terranexxus.com/api/v1/properties/filters");
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
@@ -88,7 +88,7 @@ export const ServicePropertiesSection = () => {
       setError(null);
 
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/properties?service=${activeService}`);
+        const res = await fetch(`https://app.terranexxus.com/api/v1/properties?service=${activeService}`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const json = await res.json();
 

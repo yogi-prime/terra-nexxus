@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const DEFAULT_ICONS = [Building2, Home, Factory, Users, Square, TreePine];
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+const API_BASE = "https://app.terranexxus.com/api/v1";
 
 function getIconFromString(str: string) {
   const index =
