@@ -2,8 +2,8 @@ import axios from "axios";
 
 // Use your live URL directly
 // const API_BASE = import.meta.env.VITE_API_BASE || `http://app.terranexxus.com/`;
-// const API_BASE = (import.meta.env.VITE_API_BASE || "https://app.terranexxus.com").replace(/\/+$/,'');
-const API_BASE = import.meta.env.VITE_API_BASE || `${window.location.protocol}//${window.location.hostname}:8000`; //local
+const API_BASE = (import.meta.env.VITE_API_BASE || "https://app.terranexxus.com").replace(/\/+$/,'');
+//const API_BASE = import.meta.env.VITE_API_BASE || `${window.location.protocol}//${window.location.hostname}:8000`; //local
 
 
 const API = axios.create({

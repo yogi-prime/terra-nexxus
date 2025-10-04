@@ -23,6 +23,21 @@ const API_BASE = "http://127.0.0.1:8000/api/v1";
 const brandGradient = "linear-gradient(90deg,#22c55e 0%,#84cc16 50%,#facc15 100%)";
 const PLACEHOLDER_IMG = "/images/placeholder/property.jpg";
 
+
+/* ----------------------------- debug & defaults ----------------------------- */
+const DEBUG = true; // flip to false to silence logs
+const DEFAULT_MIN_PRICE = 0;
+const DEFAULT_MAX_PRICE = 5_00_00_000;
+const DEFAULT_MIN_BED = 0;
+const DEFAULT_MAX_BED = 20;
+
+const log = (...args: any[]) => DEBUG && console.log('[Market]', ...args);
+const group = (label: string, fn: () => void) => {
+  if (!DEBUG) return fn();
+  console.groupCollapsed(label);
+  try { fn(); } finally { console.groupEnd(); }
+};
+
 /* ----------------------------- types ----------------------------- */
 type Service = "rent"|"lease"|"mortgage"|"resale"|"new"|string|null;
 
@@ -181,39 +196,46 @@ export default function Marketplace() {
 
   // filters mapped to DB fields
   const [filters, setFilters] = useState<Filters>({
-    service: "",
-    propertyType: "",
-    state: "",
-    city: "",
-    priceRange: [0, 5_00_00_000],
-    minBedrooms: 0,
-    maxBedrooms: 20,
-    hasLoan: false,
-    hasNoc: false,
+   service: "",
+  propertyType: "",
+  state: "",
+  city: "",
+  priceRange: [DEFAULT_MIN_PRICE, DEFAULT_MAX_PRICE],
+  minBedrooms: DEFAULT_MIN_BED,
+  maxBedrooms: DEFAULT_MAX_BED,
+  hasLoan: false,
+  hasNoc: false,
   });
 
   const [filterOpen, setFilterOpen] = useState(false);
   const openMobileFilter = () => setFilterOpen(true);
 
   // Load filter options once (FETCH, no api.ts)
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/properties/filters`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const payload = await res.json();
-        setOpts(normalizeFiltersPayload(payload));
-      } catch (err) {
-        console.error("Failed to fetch filters:", err);
-        setOpts({
-          states: [],
-          citiesByState: {},
-          propertyTypes: [],
-          bedrooms: [1,2,3,4,5,6,7,8,9,10],
-        });
-      }
-    })();
-  }, []);
+ useEffect(() => {
+  (async () => {
+    try {
+      const url = `${API_BASE}/properties/filters`;
+      group(`FETCH filters → ${url}`, () => {});
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const payload = await res.json();
+      group('Filters raw payload', () => log(payload));
+
+      const normalized = normalizeFiltersPayload(payload);
+      setOpts(normalized);
+      group('Filters normalized', () => log(normalized));
+    } catch (err) {
+      console.error("Failed to fetch filters:", err);
+      setOpts({
+        states: [],
+        citiesByState: {},
+        propertyTypes: [],
+        bedrooms: [1,2,3,4,5,6,7,8,9,10],
+      });
+    }
+  })();
+}, []);
+
 
   /** Build server-side query params */
   const mapSort = (val: string) => {
@@ -226,59 +248,110 @@ export default function Marketplace() {
     }
   };
 
-  const buildParams = () => {
-    const p = new URLSearchParams();
-    if (search) p.set("q", search);
-    if (filters.service) p.set("service", String(filters.service));
-    if (filters.propertyType) p.set("property_type", filters.propertyType);
-    if (filters.state) p.set("state", filters.state);
-    if (filters.city) p.set("city", filters.city);
-    if (filters.priceRange?.[0]) p.set("price_min", String(filters.priceRange[0]));
-    if (filters.priceRange?.[1]) p.set("price_max", String(filters.priceRange[1]));
-    if (filters.minBedrooms) p.set("min_bedrooms", String(filters.minBedrooms));
-    if (Math.max(filters.maxBedrooms, filters.minBedrooms)) {
-      p.set("max_bedrooms", String(Math.max(filters.maxBedrooms, filters.minBedrooms)));
+/** Build server-side query params WITHOUT applying defaults */
+const buildParams = () => {
+  const p = new URLSearchParams();
+
+  if (search) p.set("q", search);
+  if (filters.service) p.set("service", String(filters.service));
+  if (filters.propertyType) p.set("property_type", filters.propertyType);
+  if (filters.state) p.set("state", filters.state);
+  if (filters.city) p.set("city", filters.city);
+
+  // Only send price if user moved away from defaults
+  const [minP, maxP] = filters.priceRange;
+  if (minP !== DEFAULT_MIN_PRICE) p.set("price_min", String(minP));
+  if (maxP !== DEFAULT_MAX_PRICE) p.set("price_max", String(maxP));
+
+  // Only send bedrooms if changed from defaults
+  if (filters.minBedrooms !== DEFAULT_MIN_BED) p.set("min_bedrooms", String(filters.minBedrooms));
+  if (filters.maxBedrooms !== DEFAULT_MAX_BED) p.set("max_bedrooms", String(filters.maxBedrooms));
+
+  // Sorting & page size are okay to always send
+  const mapSort = (val: string) => {
+    switch (val) {
+      case "price-low": return "price";
+      case "price-high": return "-price";
+      case "oldest": return "created_at";
+      case "newest":
+      default: return "-created_at";
     }
-    p.set("sort", mapSort(sortBy));
-    p.set("per_page", "24");
-    return p;
   };
+  p.set("sort", mapSort(sortBy));
+  p.set("per_page", "24");
+
+  group('Query params (what we will send)', () => log(Object.fromEntries(p.entries())));
+  return p;
+};
+
 
   // Fetch data whenever filters/search/sort change (FETCH, no api.ts)
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
+ useEffect(() => {
+  let alive = true;
+  (async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const qs = buildParams().toString();
-        const url = `${API_BASE}/properties${qs ? `?${qs}` : ""}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const payload = await res.json();
+      const qs = buildParams().toString();
+      const url = `${API_BASE}/properties${qs ? `?${qs}` : ""}`;
+      group(`FETCH properties → ${url}`, () => {});
 
-        const arr = extractArray(payload);
-        const normalized = arr.map(normalizeProperty);
-        if (alive) setItems(normalized);
-      } catch (e: any) {
-        let msg = "Something went wrong. Please adjust filters.";
-        // If backend returns 422 with { errors: {...} }
-        if (e?.message?.startsWith("HTTP 422")) {
-          msg = "Invalid filters. Please adjust and try again.";
-        } else if (e?.message) {
-          msg = e.message;
-        }
-        if (alive) setError(msg);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [
-    search, filters.service, filters.propertyType, filters.state, filters.city,
-    filters.priceRange[0], filters.priceRange[1], filters.minBedrooms, filters.maxBedrooms, sortBy
-  ]);
+      const res = await fetch(url);
+      log('HTTP status:', res.status);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const payload = await res.json();
+      group('Properties raw payload', () => log(payload));
+
+      const arr = extractArray(payload);
+      const normalized = arr.map(normalizeProperty);
+
+      // Debug tables
+      group(`Normalized items (${normalized.length})`, () => console.table(
+        normalized.map(p => ({
+          id: p.id,
+          title: p.title,
+          service: p.service,
+          city: p.city,
+          state: p.state,
+          mainImage: p.mainImage || '(none)',
+          galleryCount: p.gallery?.length || 0,
+          priceActual: p.priceActual,
+        }))
+      ));
+
+      // Image-specific debug
+      group('Image URLs by item', () => {
+        normalized.forEach(p => {
+          log(`ID ${p.id} – main:`, p.mainImage);
+          if (p.gallery?.length) log(`ID ${p.id} – gallery:`, p.gallery);
+        });
+      });
+
+      if (alive) setItems(normalized);
+    } catch (e: any) {
+      let msg = "Something went wrong. Please adjust filters.";
+      if (e?.message?.startsWith("HTTP 422")) msg = "Invalid filters. Please adjust and try again.";
+      else if (e?.message) msg = e.message;
+
+      console.error('FETCH properties failed:', e);
+      if (alive) setError(msg);
+    } finally {
+      if (alive) setLoading(false);
+      group('Fetch complete snapshot', () => {
+        log('filters:', filters);
+        log('search:', search);
+        log('sortBy:', sortBy);
+      });
+    }
+  })();
+  return () => { alive = false; };
+}, [
+  search, filters.service, filters.propertyType, filters.state, filters.city,
+  filters.priceRange[0], filters.priceRange[1], filters.minBedrooms, filters.maxBedrooms, sortBy
+]);
+
 
   /* ---------------- derived & client-side fallbacks ---------------- */
   const filtered = useMemo(() => {
@@ -506,12 +579,32 @@ export default function Marketplace() {
                     <Card key={p.id} className="group hover:shadow-xl transition-all duration-300 border-emerald-900/20 hover:border-emerald-700/30 overflow-hidden">
                       {/* image */}
                       <div className="relative h-48 bg-muted overflow-hidden">
-                        <img
-                          src={p.mainImage || PLACEHOLDER_IMG}
-                          alt={p.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG; }}
-                        />
+                       <img
+  src={
+    p.mainImage
+      ? (/^https?:\/\//i.test(p.mainImage)
+          ? p.mainImage
+          : `${API_BASE.replace('/api/v1','')}/${
+              p.mainImage.startsWith('storage/')
+                ? p.mainImage
+                : `storage/${p.mainImage.replace(/^\/+/, '')}`
+            }`)
+      : PLACEHOLDER_IMG
+  }
+  alt={p.title}
+  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+  onError={(e) => {
+    console.warn('Image failed:', p.id, p.mainImage);
+    // stop repeated logs/retries
+    (e.currentTarget as HTMLImageElement).onerror = null;
+    (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG;
+  }}
+/>
+
+
+
+
+
                         {p.status && <Badge className={`absolute top-3 right-3 ${statusChip(p.status)}`}>{p.status}</Badge>}
                       </div>
 
