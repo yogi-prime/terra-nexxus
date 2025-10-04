@@ -13,13 +13,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import API from "@/api/api";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 
 /* ----------------------------- constants ----------------------------- */
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+// const API_BASE = "http://127.0.0.1:8000/api/v1";
+// ⬇️ central base derived from axios instance
+const API_ROOT = (API.defaults.baseURL || "").replace(/\/+$/, ''); // ".../api" ya ""
+const API_ORIGIN = API_ROOT ? API_ROOT.replace(/\/api$/, "") : window.location.origin;
+const API_V1 = API_ROOT ? `${API_ROOT}/v1` : `${API_ORIGIN}/api/v1`; // sirf logs/debug ke liye
+
 const brandGradient = "linear-gradient(90deg,#22c55e 0%,#84cc16 50%,#facc15 100%)";
 const PLACEHOLDER_IMG = "/images/placeholder/property.jpg";
 
@@ -39,49 +45,49 @@ const group = (label: string, fn: () => void) => {
 };
 
 /* ----------------------------- types ----------------------------- */
-type Service = "rent"|"lease"|"mortgage"|"resale"|"new"|string|null;
+type Service = "rent" | "lease" | "mortgage" | "resale" | "new" | string | null;
 
 type UiProperty = {
-  id: number|string;
+  id: number | string;
   title: string;
   subtitle?: string;
   service: Service;
-  propertyType?: string|null;
+  propertyType?: string | null;
   locationText: string;
-  city?: string|null;
-  state?: string|null;
-  locality?: string|null;
-  mainImage?: string|null;
-  gallery?: string[]|null;
-  priceActual?: number|null;
-  priceMin?: number|null;
-  priceMax?: number|null;
-  pricePerSqft?: number|null;
-  sizeText?: string|null;
-  bedrooms?: number|null;
-  bathrooms?: number|null;
-  furnishing?: string|null;
-  amenities?: string[]|null;
-  status?: string|null;
-  availableFrom?: string|null;
+  city?: string | null;
+  state?: string | null;
+  locality?: string | null;
+  mainImage?: string | null;
+  gallery?: string[] | null;
+  priceActual?: number | null;
+  priceMin?: number | null;
+  priceMax?: number | null;
+  pricePerSqft?: number | null;
+  sizeText?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  furnishing?: string | null;
+  amenities?: string[] | null;
+  status?: string | null;
+  availableFrom?: string | null;
   createdAt?: string;
 };
 
 type Filters = {
-  service: Service|""; propertyType: string|""; state: string|""; city: string|"";
+  service: Service | ""; propertyType: string | ""; state: string | ""; city: string | "";
   priceRange: [number, number]; minBedrooms: number; maxBedrooms: number;
   hasLoan: boolean; hasNoc: boolean;
 };
 
 type FilterOptions = {
   states: string[];
-  citiesByState: Record<string,string[]>;
+  citiesByState: Record<string, string[]>;
   propertyTypes: string[];          // normalized to array of names for the UI
   bedrooms: number[];               // normalized
 };
 
 /* ----------------------------- utils ----------------------------- */
-const formatCurrency = (value?: number|null) => {
+const formatCurrency = (value?: number | null) => {
   if (value == null) return "—";
   if (value >= 1e7) return `₹${(value / 1e7).toFixed(1)} Cr`;
   if (value >= 1e5) return `₹${(value / 1e5).toFixed(1)} L`;
@@ -93,15 +99,15 @@ function normalizeProperty(raw: any): UiProperty {
   const isRes = !!raw?.location || !!raw?.price || !!raw?.media;
   const id = raw?.id;
 
-  const city   = isRes ? raw.location?.city : raw?.city;
-  const state  = isRes ? raw.location?.state : raw?.state;
+  const city = isRes ? raw.location?.city : raw?.city;
+  const state = isRes ? raw.location?.state : raw?.state;
   const locTxt = [city, state].filter(Boolean).join(", ") || raw?.locality || "—";
 
   const title = raw?.title || raw?.project_name || "Untitled";
   const subtitle = [raw?.project_name, raw?.builder_name].filter(Boolean).join(" • ") || raw?.builder_name || "";
 
   const mediaMain = isRes ? raw.media?.main_image : (raw?.primary_image_url ?? raw?.main_image_path);
-  const gallery   = isRes ? raw.media?.gallery : raw?.gallery_paths;
+  const gallery = isRes ? raw.media?.gallery : raw?.gallery_paths;
 
   return {
     id,
@@ -172,7 +178,7 @@ function normalizeFiltersPayload(payload: any): FilterOptions {
   // bedrooms
   const bedrooms = Array.isArray(payload?.bedrooms) && payload.bedrooms.length
     ? payload.bedrooms
-    : [1,2,3,4,5,6,7,8,9,10];
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   return { states, citiesByState, propertyTypes, bedrooms };
 }
@@ -196,45 +202,47 @@ export default function Marketplace() {
 
   // filters mapped to DB fields
   const [filters, setFilters] = useState<Filters>({
-   service: "",
-  propertyType: "",
-  state: "",
-  city: "",
-  priceRange: [DEFAULT_MIN_PRICE, DEFAULT_MAX_PRICE],
-  minBedrooms: DEFAULT_MIN_BED,
-  maxBedrooms: DEFAULT_MAX_BED,
-  hasLoan: false,
-  hasNoc: false,
+    service: "",
+    propertyType: "",
+    state: "",
+    city: "",
+    priceRange: [DEFAULT_MIN_PRICE, DEFAULT_MAX_PRICE],
+    minBedrooms: DEFAULT_MIN_BED,
+    maxBedrooms: DEFAULT_MAX_BED,
+    hasLoan: false,
+    hasNoc: false,
   });
 
   const [filterOpen, setFilterOpen] = useState(false);
   const openMobileFilter = () => setFilterOpen(true);
 
   // Load filter options once (FETCH, no api.ts)
- useEffect(() => {
-  (async () => {
-    try {
-      const url = `${API_BASE}/properties/filters`;
-      group(`FETCH filters → ${url}`, () => {});
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const payload = await res.json();
-      group('Filters raw payload', () => log(payload));
+  useEffect(() => {
+    (async () => {
+      try {
+        const url = `${API_V1}/properties/filters`;
+        group(`FETCH filters → ${url}`, () => { });
 
-      const normalized = normalizeFiltersPayload(payload);
-      setOpts(normalized);
-      group('Filters normalized', () => log(normalized));
-    } catch (err) {
-      console.error("Failed to fetch filters:", err);
-      setOpts({
-        states: [],
-        citiesByState: {},
-        propertyTypes: [],
-        bedrooms: [1,2,3,4,5,6,7,8,9,10],
-      });
-    }
-  })();
-}, []);
+        // ✅ axios instance (no qs needed here)
+        const { data: payload } = await API.get("v1/properties/filters");
+
+        group("Filters raw payload", () => log(payload));
+
+        const normalized = normalizeFiltersPayload(payload);
+        setOpts(normalized);
+        group("Filters normalized", () => log(normalized));
+      } catch (err) {
+        console.error("Failed to fetch filters:", err);
+        setOpts({
+          states: [],
+          citiesByState: {},
+          propertyTypes: [],
+          bedrooms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        });
+      }
+    })();
+  }, []);
+
 
 
   /** Build server-side query params */
@@ -248,109 +256,121 @@ export default function Marketplace() {
     }
   };
 
-/** Build server-side query params WITHOUT applying defaults */
-const buildParams = () => {
-  const p = new URLSearchParams();
+  /** Build server-side query params WITHOUT applying defaults */
+  const buildParams = () => {
+    const p = new URLSearchParams();
 
-  if (search) p.set("q", search);
-  if (filters.service) p.set("service", String(filters.service));
-  if (filters.propertyType) p.set("property_type", filters.propertyType);
-  if (filters.state) p.set("state", filters.state);
-  if (filters.city) p.set("city", filters.city);
+    if (search) p.set("q", search);
+    if (filters.service) p.set("service", String(filters.service));
+    if (filters.propertyType) p.set("property_type", filters.propertyType);
+    if (filters.state) p.set("state", filters.state);
+    if (filters.city) p.set("city", filters.city);
 
-  // Only send price if user moved away from defaults
-  const [minP, maxP] = filters.priceRange;
-  if (minP !== DEFAULT_MIN_PRICE) p.set("price_min", String(minP));
-  if (maxP !== DEFAULT_MAX_PRICE) p.set("price_max", String(maxP));
+    // Only send price if user moved away from defaults
+    const [minP, maxP] = filters.priceRange;
+    if (minP !== DEFAULT_MIN_PRICE) p.set("price_min", String(minP));
+    if (maxP !== DEFAULT_MAX_PRICE) p.set("price_max", String(maxP));
 
-  // Only send bedrooms if changed from defaults
-  if (filters.minBedrooms !== DEFAULT_MIN_BED) p.set("min_bedrooms", String(filters.minBedrooms));
-  if (filters.maxBedrooms !== DEFAULT_MAX_BED) p.set("max_bedrooms", String(filters.maxBedrooms));
+    // Only send bedrooms if changed from defaults
+    if (filters.minBedrooms !== DEFAULT_MIN_BED) p.set("min_bedrooms", String(filters.minBedrooms));
+    if (filters.maxBedrooms !== DEFAULT_MAX_BED) p.set("max_bedrooms", String(filters.maxBedrooms));
 
-  // Sorting & page size are okay to always send
-  const mapSort = (val: string) => {
-    switch (val) {
-      case "price-low": return "price";
-      case "price-high": return "-price";
-      case "oldest": return "created_at";
-      case "newest":
-      default: return "-created_at";
-    }
+    // Sorting & page size are okay to always send
+    const mapSort = (val: string) => {
+      switch (val) {
+        case "price-low": return "price";
+        case "price-high": return "-price";
+        case "oldest": return "created_at";
+        case "newest":
+        default: return "-created_at";
+      }
+    };
+    p.set("sort", mapSort(sortBy));
+    p.set("per_page", "24");
+
+    group('Query params (what we will send)', () => log(Object.fromEntries(p.entries())));
+    return p;
   };
-  p.set("sort", mapSort(sortBy));
-  p.set("per_page", "24");
-
-  group('Query params (what we will send)', () => log(Object.fromEntries(p.entries())));
-  return p;
-};
 
 
   // Fetch data whenever filters/search/sort change (FETCH, no api.ts)
- useEffect(() => {
-  let alive = true;
-  (async () => {
-    try {
-      setLoading(true);
-      setError("");
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-      const qs = buildParams().toString();
-      const url = `${API_BASE}/properties${qs ? `?${qs}` : ""}`;
-      group(`FETCH properties → ${url}`, () => {});
+        // ⚠️ pehle qs string bana rahe the; axios me directly object de sakte ho:
+        const paramsObj = Object.fromEntries(buildParams());
 
-      const res = await fetch(url);
-      log('HTTP status:', res.status);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const url = `${API_V1}/properties`;
+        group(`FETCH properties → ${url}`, () => log(paramsObj));
 
-      const payload = await res.json();
-      group('Properties raw payload', () => log(payload));
+        // ✅ axios instance via api.ts (handles base + token)
+        const { data: payload } = await API.get("v1/properties", { params: paramsObj });
 
-      const arr = extractArray(payload);
-      const normalized = arr.map(normalizeProperty);
+        group("Properties raw payload", () => log(payload));
 
-      // Debug tables
-      group(`Normalized items (${normalized.length})`, () => console.table(
-        normalized.map(p => ({
-          id: p.id,
-          title: p.title,
-          service: p.service,
-          city: p.city,
-          state: p.state,
-          mainImage: p.mainImage || '(none)',
-          galleryCount: p.gallery?.length || 0,
-          priceActual: p.priceActual,
-        }))
-      ));
+        const arr = extractArray(payload);
+        const normalized = arr.map(normalizeProperty);
 
-      // Image-specific debug
-      group('Image URLs by item', () => {
-        normalized.forEach(p => {
-          log(`ID ${p.id} – main:`, p.mainImage);
-          if (p.gallery?.length) log(`ID ${p.id} – gallery:`, p.gallery);
+        group(`Normalized items (${normalized.length})`, () =>
+          console.table(
+            normalized.map((p) => ({
+              id: p.id,
+              title: p.title,
+              service: p.service,
+              city: p.city,
+              state: p.state,
+              mainImage: p.mainImage || "(none)",
+              galleryCount: p.gallery?.length || 0,
+              priceActual: p.priceActual,
+            }))
+          )
+        );
+
+        group("Image URLs by item", () => {
+          normalized.forEach((p) => {
+            log(`ID ${p.id} – main:`, p.mainImage);
+            if (p.gallery?.length) log(`ID ${p.id} – gallery:`, p.gallery);
+          });
         });
-      });
 
-      if (alive) setItems(normalized);
-    } catch (e: any) {
-      let msg = "Something went wrong. Please adjust filters.";
-      if (e?.message?.startsWith("HTTP 422")) msg = "Invalid filters. Please adjust and try again.";
-      else if (e?.message) msg = e.message;
+        if (alive) setItems(normalized);
+      } catch (e: any) {
+        let msg = "Something went wrong. Please adjust filters.";
+        const status = e?.response?.status;
+        if (status === 422) msg = "Invalid filters. Please adjust and try again.";
+        else if (e?.message) msg = e.message;
 
-      console.error('FETCH properties failed:', e);
-      if (alive) setError(msg);
-    } finally {
-      if (alive) setLoading(false);
-      group('Fetch complete snapshot', () => {
-        log('filters:', filters);
-        log('search:', search);
-        log('sortBy:', sortBy);
-      });
-    }
-  })();
-  return () => { alive = false; };
-}, [
-  search, filters.service, filters.propertyType, filters.state, filters.city,
-  filters.priceRange[0], filters.priceRange[1], filters.minBedrooms, filters.maxBedrooms, sortBy
-]);
+        console.error("FETCH properties failed:", e);
+        if (alive) setError(msg);
+      } finally {
+        if (alive) setLoading(false);
+        group("Fetch complete snapshot", () => {
+          log("filters:", filters);
+          log("search:", search);
+          log("sortBy:", sortBy);
+        });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [
+    search,
+    filters.service,
+    filters.propertyType,
+    filters.state,
+    filters.city,
+    filters.priceRange[0],
+    filters.priceRange[1],
+    filters.minBedrooms,
+    filters.maxBedrooms,
+    sortBy,
+  ]);
+
 
 
   /* ---------------- derived & client-side fallbacks ---------------- */
@@ -358,7 +378,7 @@ const buildParams = () => {
     let list = items.slice();
 
     if (filters.hasLoan) list = list.filter((p: any) => p?.loan_available ?? true);
-    if (filters.hasNoc)  list = list.filter((p: any) => p?.noc_available ?? true);
+    if (filters.hasNoc) list = list.filter((p: any) => p?.noc_available ?? true);
 
     // local search fallback
     if (search.trim()) {
@@ -415,7 +435,7 @@ const buildParams = () => {
     setWatchlist(prev => prev.find(x => x.id === p.id) ? prev.filter(x => x.id !== p.id) : [...prev, p]);
   };
 
-  const statusChip = (s?: string|null) => {
+  const statusChip = (s?: string | null) => {
     if (!s) return "bg-slate-300 text-slate-800";
     const v = s.toLowerCase();
     if (v.includes("draft")) return "bg-slate-300 text-slate-800";
@@ -534,8 +554,8 @@ const buildParams = () => {
                         <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                         <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                                 formatter={(v: number) => [`₹${(v as number).toFixed(1)} L`, "Price"]} />
-                        <Bar dataKey="price" fill="#22c55e" radius={[4,4,0,0]} />
+                          formatter={(v: number) => [`₹${(v as number).toFixed(1)} L`, "Price"]} />
+                        <Bar dataKey="price" fill="#22c55e" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
@@ -547,7 +567,7 @@ const buildParams = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={categoriesData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value"
-                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                           {categoriesData.map((entry, i) => (<Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
                         </Pie>
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
@@ -579,32 +599,28 @@ const buildParams = () => {
                     <Card key={p.id} className="group hover:shadow-xl transition-all duration-300 border-emerald-900/20 hover:border-emerald-700/30 overflow-hidden">
                       {/* image */}
                       <div className="relative h-48 bg-muted overflow-hidden">
-                       <img
-  src={
-    p.mainImage
-      ? (/^https?:\/\//i.test(p.mainImage)
-          ? p.mainImage
-          : `${API_BASE.replace('/api/v1','')}/${
-              p.mainImage.startsWith('storage/')
-                ? p.mainImage
-                : `storage/${p.mainImage.replace(/^\/+/, '')}`
-            }`)
-      : PLACEHOLDER_IMG
-  }
-  alt={p.title}
-  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-  onError={(e) => {
-    console.warn('Image failed:', p.id, p.mainImage);
-    // stop repeated logs/retries
-    (e.currentTarget as HTMLImageElement).onerror = null;
-    (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG;
-  }}
-/>
-
-
-
-
-
+                        <img
+                          src={
+                            p.mainImage
+                              ? (
+                                /^https?:\/\//i.test(p.mainImage)
+                                  ? p.mainImage
+                                  : (() => {
+                                    const imgPath = (p.mainImage || "").replace(/^\/+/, ""); // remove leading slashes
+                                    const finalPath = imgPath.startsWith("storage/") ? imgPath : `storage/${imgPath}`;
+                                    return `${API_ORIGIN}/${finalPath}`;
+                                  })()
+                              )
+                              : PLACEHOLDER_IMG
+                          }
+                          alt={p.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            console.warn("Image failed:", p.id, p.mainImage);
+                            (e.currentTarget as HTMLImageElement).onerror = null;
+                            (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG;
+                          }}
+                        />
                         {p.status && <Badge className={`absolute top-3 right-3 ${statusChip(p.status)}`}>{p.status}</Badge>}
                       </div>
 
@@ -691,8 +707,8 @@ const buildParams = () => {
             <section className="mt-12 mb-8">
               <div className="rounded-2xl p-8 text-center relative overflow-hidden" style={{ backgroundImage: brandGradient }}>
                 <div className="absolute inset-0 opacity-10">
-                  <div className="absolute top-6 left-6"><Building2 className="h-16 w-16"/></div>
-                  <div className="absolute bottom-6 right-6"><Building2 className="h-20 w-20"/></div>
+                  <div className="absolute top-6 left-6"><Building2 className="h-16 w-16" /></div>
+                  <div className="absolute bottom-6 right-6"><Building2 className="h-20 w-20" /></div>
                 </div>
                 <div className="relative z-10">
                   <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Find your next property</h2>
