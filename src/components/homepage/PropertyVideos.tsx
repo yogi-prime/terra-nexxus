@@ -72,11 +72,17 @@ export const PropertyVideos = () => {
               className="group overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
             >
               <div className="relative">
-                <img
+                {/* <img
                   src={video.thumbnail || "https://via.placeholder.com/640x360?text=No+Thumbnail"}
                   alt={video.title}
                   className="w-full h-48 object-cover"
-                />
+                /> */}
+                <img
+  src={video.thumbnail || "/images/placeholder/property.jpg"}
+  alt={video.title}
+  className="w-full h-48 object-cover"
+  onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/images/placeholder/property.jpg"; }}
+/>
 
                 {/* Play Button Overlay */}
                 <div
@@ -158,9 +164,18 @@ export const PropertyVideos = () => {
                 </button>
               </div>
 
-              {currentVideo && (
+              {/* {currentVideo && (
                 <video src={currentVideo} controls className="w-full h-[400px] object-cover rounded" />
-              )}
+              )} */}
+              {currentVideo && (
+  <video
+    key={currentVideo}             // force reload if URL changes
+    src={currentVideo}
+    controls
+    preload="metadata"
+    className="w-full h-[400px] object-cover rounded"
+  />
+)}
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
