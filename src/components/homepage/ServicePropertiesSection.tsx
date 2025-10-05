@@ -331,7 +331,7 @@ export const ServicePropertiesSection = () => {
           image: p.media?.main_image ?? "https://via.placeholder.com/400x300",
           bhk: p.layout?.bedrooms ? `${p.layout.bedrooms} BHK` : "N/A",
           area: p.layout?.size_text ?? "N/A",
-          rating: p.rating ?? 0,
+          rating: p.rating ?? 5,
           serviceType: activeService,
         }));
 
@@ -441,7 +441,7 @@ export const ServicePropertiesSection = () => {
                   <Button
                     size="sm"
                     className="w-full"
-                    onClick={() => navigate(`/marketplace/property/${property.id}`)} // 👈 go to details
+                    onClick={() => navigate(`/property-show/${property.id}`)} // 👈 go to details
                   >
                     <Eye className="h-4 w-4 mr-2" /> View Details
                   </Button>
