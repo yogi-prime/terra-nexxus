@@ -45,9 +45,9 @@ export const DevelopersSection: React.FC = () => {
       id: "1",
       name: "Lodha Group",
       logo:
-        "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=160&h=160&fit=crop",
+        "lodha_logo.png",
       banner:
-        "https://images.unsplash.com/photo-1505842465776-3a8d3a2a9a0f?w=1400&h=500&fit=crop",
+        "lodha.jpg",
       established: "1980",
       totalProjects: "200+",
       activeProjects: 8,
@@ -77,9 +77,9 @@ export const DevelopersSection: React.FC = () => {
       id: "2",
       name: "Prestige Group",
       logo:
-        "https://images.unsplash.com/photo-1560472355-536de3962603?w=160&h=160&fit=crop",
+        "prestige_logo.jpg",
       banner:
-        "https://images.unsplash.com/photo-1494526585095-c41746248156?w=1400&h=500&fit=crop",
+        "Prestige.jpg",
       established: "1986",
       totalProjects: "150+",
       activeProjects: 12,
@@ -109,9 +109,9 @@ export const DevelopersSection: React.FC = () => {
       id: "3",
       name: "DLF Limited",
       logo:
-        "https://images.unsplash.com/photo-1560472354-a33e061e8438?w=160&h=160&fit=crop",
+        "dlf_logo.jpg",
       banner:
-        "https://images.unsplash.com/photo-1505691723518-36a5ac3b2d52?w=1400&h=500&fit=crop",
+        "DLF.avif",
       established: "1946",
       totalProjects: "300+",
       activeProjects: 15,
@@ -141,9 +141,9 @@ export const DevelopersSection: React.FC = () => {
       id: "4",
       name: "Godrej Properties",
       logo:
-        "https://images.unsplash.com/photo-1560472355-536de3962603?w=160&h=160&fit=crop",
+        "GPL_Logo.jpg",
       banner:
-        "https://images.unsplash.com/photo-1505692794403-34d4982f88aa?w=1400&h=500&fit=crop",
+        "Godrej .webp",
       established: "1897",
       totalProjects: "180+",
       activeProjects: 10,
@@ -164,7 +164,7 @@ export const DevelopersSection: React.FC = () => {
           location: "Jagatpur, Ahmedabad",
           price: "₹65L+",
           thumb:
-            "https://images.unsplash.com/photo-1505692794403-34d4982f88aa?w=300&h=200&fit=crop",
+            "https://gplwebsitecdnblob.blob.core.windows.net/godrej-cdn/Images/Godrej%20Bengaluru%20Dsktop%20Size%204ff02bec-c216-440e-b17e-a14e3fb2130f.webp",
           type: "RENT" as const,
         },
       ],

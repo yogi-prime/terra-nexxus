@@ -50,7 +50,7 @@ export const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
-            <Button variant="hero" size="xl" className="group" onClick={() => navigate("/Properties")}>
+            <Button variant="hero" size="xl" className="group" onClick={() => navigate("/terrashare-properties")}>
               Browse Properties
               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>

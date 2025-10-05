@@ -245,7 +245,7 @@ export const FeaturedProperties = () => {
         </div>
 
         <div className="text-center mt-12">
-          <Button variant="accent" size="lg" onClick={() => navigate("/properties")}>
+          <Button variant="accent" size="lg" onClick={() => navigate("/terrashare-properties")}>
             View All Properties
             <TrendingUp className="h-5 w-5 ml-2" />
           </Button>

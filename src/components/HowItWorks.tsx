@@ -166,7 +166,7 @@ export const HowItWorks = () => {
                 Start KYC Process
                 <ArrowRight className="h-5 w-5" />
               </Button>
-              <Button variant="premium" size="lg" onClick={() => navigate("/Properties")}>
+              <Button variant="premium" size="lg" onClick={() => navigate("/terrashare-properties")}>
                 Browse Properties
               </Button>
             </div>
