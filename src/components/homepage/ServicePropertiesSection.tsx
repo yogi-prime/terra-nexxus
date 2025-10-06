@@ -525,11 +525,11 @@ export const ServicePropertiesSection = () => {
 
   // Labels
   const SERVICE_LABEL_MAP: Record<string, string> = {
-    new: "Buy Properties",
-    resale: "Resale Properties",
-    rent: "Rent Properties",
-    lease: "Lease Properties",
-    mortgage: "Mortgage Properties",
+    new: "New",
+    resale: "Resale",
+    rent: "Rent",
+    lease: "Lease",
+    mortgage: "Mortgage",
   };
 
   // Colors

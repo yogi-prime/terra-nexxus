@@ -27,11 +27,11 @@ const navItems = [
   
 ];
 
-const quickLinks = [
-  { name: "Calculator", href: "#calculator", icon: Calculator },
-  { name: "FAQs", href: "#faqs", icon: MessageSquare },
-  { name: "Blog", href: "#blog", icon: BookOpen },
-];
+// const quickLinks = [
+//   { name: "Calculator", href: "", icon: Calculator },
+//   { name: "FAQs", href: "#", icon: MessageSquare },
+//   { name: "Blog", href: "posts", icon: BookOpen },
+// ];
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,7 +52,7 @@ export const Header = () => {
   return (
     <>
       {/* Quick Links Ribbon */}
-      <div className="bg-card-premium border-b border-border-dark">
+      {/* <div className="bg-card-premium border-b border-border-dark">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
@@ -76,7 +76,7 @@ export const Header = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
