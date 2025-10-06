@@ -426,7 +426,7 @@ export const DevelopersSection: React.FC = () => {
         </div>
 
         {/* Trust strip + infinite marquee */}
-        <div className="mt-14 flex flex-col items-center gap-6">
+        {/* <div className="mt-14 flex flex-col items-center gap-6">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400 text-white shadow">
             <Award className="h-4 w-4" />
             <span className="text-sm font-medium">500+ Verified Developers & Growing</span>
@@ -448,11 +448,10 @@ export const DevelopersSection: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
-      {/* marquee keyframes */}
-      <style jsx>{`
+      {/* <style jsx>{`
         @keyframes marquee {
           0% {
             transform: translateX(0);
@@ -464,7 +463,7 @@ export const DevelopersSection: React.FC = () => {
         .animate-marquee {
           animation: marquee 40s linear infinite;
         }
-      `}</style>
+      `}</style> */}
     </section>
   );
 };
