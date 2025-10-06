@@ -542,35 +542,44 @@ export const ServicePropertiesSection = () => {
   };
 
   // Fetch services
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        setError(null);
-        const res = await fetch("https://app.terranexxus.com/api/v1/properties/filters");
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
+// Fetch services
+useEffect(() => {
+  const fetchServices = async () => {
+    try {
+      setError(null);
+      const res = await fetch("https://app.terranexxus.com/api/v1/properties/filters");
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
 
-        if (!data.services || data.services.length === 0) {
-          setError("No services available");
-          return;
-        }
+      if (!data.services || data.services.length === 0) {
+        setError("No services available");
+        return;
+      }
 
-        const mappedServices: Service[] = data.services.map((svc: string) => ({
+      const SERVICE_ORDER = ["new", "resale", "rent", "lease", "mortgage"];
+
+      const mappedServices: Service[] = data.services
+        .map((svc: string) => ({
           key: svc,
           label: SERVICE_LABEL_MAP[svc] ?? svc.charAt(0).toUpperCase() + svc.slice(1),
           color: SERVICE_COLOR_MAP[svc] ?? "bg-gray-500",
-        }));
+        }))
+        // Sort according to our desired order
+        .sort(
+          (a, b) => SERVICE_ORDER.indexOf(a.key) - SERVICE_ORDER.indexOf(b.key)
+        );
 
-        setServices(mappedServices);
-        setActiveService(mappedServices[0].key);
-      } catch (err) {
-        console.error("Failed to fetch services:", err);
-        setError("Failed to load services");
-      }
-    };
+      setServices(mappedServices);
+      setActiveService(mappedServices[0].key);
+    } catch (err) {
+      console.error("Failed to fetch services:", err);
+      setError("Failed to load services");
+    }
+  };
 
-    fetchServices();
-  }, []);
+  fetchServices();
+}, []);
+
 
   // Fetch properties for the active service
   useEffect(() => {
