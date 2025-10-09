@@ -18,8 +18,8 @@ const companyLinks = [
   { name: "About Us", href: "/about" },
   { name: "How It Works", href: "#how-it-works" },
   { name: "Our Team", href: "#team" },
-  { name: "Careers", href: "#careers" },
-  { name: "Press", href: "#press" },
+  // { name: "Careers", href: "#careers" },
+  // { name: "Press", href: "#press" },
   { name: "Contact", href: "#contact" }
 ];
 
@@ -27,9 +27,9 @@ const investorLinks = [
   { name: "Browse Properties", href: "/properties" },
   { name: "Investment Calculator", href: "#calculator" },
   { name: "Portfolio Tracker", href: "#portfolio" },
-  { name: "Secondary Market", href: "#marketplace" },
-  { name: "Returns & Payouts", href: "#returns" },
-  { name: "Tax Center", href: "#tax" }
+  // { name: "Secondary Market", href: "#marketplace" },
+  // { name: "Returns & Payouts", href: "#returns" },
+  // { name: "Tax Center", href: "#tax" }
 ];
 
 const resourceLinks = [
@@ -37,17 +37,17 @@ const resourceLinks = [
   { name: "Video Guides", href: "#videos" },
   { name: "Market Reports", href: "#reports" },
   { name: "FAQs", href: "#faqs" },
-  { name: "Webinars", href: "#webinars" },
-  { name: "Help Center", href: "#help" }
+  // { name: "Webinars", href: "#webinars" },
+  // { name: "Help Center", href: "#help" }
 ];
 
 const legalLinks = [
-  { name: "Terms of Service", href: "#terms" },
-  { name: "Privacy Policy", href: "#privacy" },
-  { name: "Risk Disclosure", href: "#risk" },
-  { name: "Refund Policy", href: "#refund" },
-  { name: "Compliance", href: "#compliance" },
-  { name: "Grievance", href: "#grievance" }
+  // { name: "Terms of Service", href: "#terms" },
+  // { name: "Privacy Policy", href: "#privacy" },
+  // { name: "Risk Disclosure", href: "#risk" },
+  // { name: "Refund Policy", href: "#refund" },
+  // { name: "Compliance", href: "#compliance" },
+  // { name: "Grievance", href: "#grievance" }
 ];
 
 const socialLinks = [
@@ -181,7 +181,7 @@ export const Footer = () => {
           </div>
 
           {/* Legal */}
-          <div>
+          {/* <div>
             <h4 className="font-semibold text-lg mb-4">Legal</h4>
             <ul className="space-y-3">
               {legalLinks.map((link) => (
@@ -195,7 +195,7 @@ export const Footer = () => {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -226,7 +226,7 @@ export const Footer = () => {
             <p className="text-sm text-card-premium-foreground/70">
               © 2024 Terra Nexxus Private Limited. All rights reserved.
             </p>
-            <div className="flex items-center gap-4 text-xs text-card-premium-foreground/60">
+            <div className="hidden-custom flex items-center gap-4 text-xs text-card-premium-foreground/60">
               <span>CIN: U65929KA2022PTC123456</span>
               <span>•</span>
               <span>SEBI Reg: INH000001234</span>

@@ -21,6 +21,8 @@ import AddProperty from "./pages/AddProperty";
 import MarketPlace from "./pages/Marketplace";
 import MarketplacePropertyDetails from "./pages/MarketplacePropertyDetails";
 import AdminDashboard from "./pages/AdminDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AddDeveloperForm from "@/pages/AddDeveloperForm";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +35,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/property-show/:id" element={<PropertyShow />} />
-          <Route path="/admin-property" element={<AdminPropertyWizard />} />
+          <Route path="/admin-property" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPropertyWizard /></ProtectedRoute>} />
+          <Route path="/admin/edit-property/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AdminPropertyWizard /></ProtectedRoute>} />
           <Route path="/terrascout" element={<CustomerRequirement />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/add-property" element={<AddProperty />} />
@@ -48,6 +51,8 @@ const App = () => (
           <Route path="/investor/:id" element={<InvestorDashboard />} />
           <Route path="/marketplace" element={<MarketPlace />} />
           <Route path="/marketplace/property/:id" element={<MarketplacePropertyDetails />} />
+          <Route path="/admin/add-developer" element={<AddDeveloperForm />} />
+          <Route path="/admin/edit-developer/:id" element={<AddDeveloperForm />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,91 +1,107 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Building, Target } from "lucide-react";
+import { Building2, Users, HandCoins, Home, RotateCw, Key } from "lucide-react";
 import heroBackground from "@/assets/hero-background.jpg";
 import { useNavigate } from "react-router-dom";
 
 export const AboutHero = () => {
   const navigate = useNavigate();
-  const stats = [
-    { icon: Target, label: "Total Raised", value: "₹1,200+ Cr", color: "text-primary" },
-    { icon: Users, label: "Investors Onboarded", value: "15,000+", color: "text-accent" },
-    { icon: Building, label: "Properties Funded", value: "45+", color: "text-success" },
-    { icon: TrendingUp, label: "Average Yield", value: "12.5%", color: "text-warning" },
+
+  const features = [
+    {
+      icon: Users,
+      title: "Group Investment",
+      desc: "Collaborate with others to invest in high-value real estate projects and share long-term growth.",
+    },
+    {
+      icon: Key,
+      title: "Lease",
+      desc: "Flexible leasing options for residential, commercial, and industrial properties.",
+    },
+    {
+      icon: HandCoins,
+      title: "Mortgage",
+      desc: "Secure financing solutions that make property ownership accessible to everyone.",
+    },
+    {
+      icon: Home,
+      title: "Sale & Resale",
+      desc: "Buy or resell properties with complete transparency and expert assistance at every step.",
+    },
+    {
+      icon: Building2,
+      title: "Rent",
+      desc: "Find or list rental spaces quickly with our verified and secure platform.",
+    },
+    {
+      icon: RotateCw,
+      title: "End-to-End Support",
+      desc: "From paperwork to possession — we guide you throughout the entire real estate process.",
+    },
   ];
 
   return (
-<section className="relative overflow-hidden">
-  {/* Background */}
-  <div className="absolute inset-0 z-0 pointer-events-none">
-    <img
-      src={heroBackground}
-      alt="Real Estate Portfolio"
-      className="w-full h-full object-cover"
-    />
-    <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/95" />
-  </div>
-
-  {/* Content */}
-  <div className="relative z-10 container mx-auto px-4 pt-20 pb-16">
-    <div className="max-w-4xl mx-auto text-center">
-      <Badge variant="secondary" className="mb-6 text-sm px-4 py-2">
-        India's First All-Category Fractional Real Estate Platform
-      </Badge>
-      
-      <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-        Own Any Property.
-        <br />
-        Starting Small. Growing Big.
-      </h1>
-      
-      <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-        India's most diversified fractional real estate platform enabling investors to own premium properties across residential, commercial, agricultural, and industrial categories.
-      </p>
-
-      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-        <Button variant="hero" size="lg" className="text-lg px-8 py-4" onClick={() => navigate("/register")}>
-          Start KYC Process
-        </Button>
-        <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={() => navigate("/properties")}>
-          Browse Properties
-        </Button>
+    <section className="relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src={heroBackground}
+          alt="Real Estate Background"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/95" />
       </div>
-    </div>
-  </div>
 
-  {/* Stats Ticker */}
-  <div className="relative overflow-hidden z-10">
-    <div className="absolute inset-0 bg-[linear-gradient(135deg,#0F2520_0%,#143229_60%,rgba(31,122,90,0.22)_100%)] pointer-events-none" />
-    <div className="pointer-events-none absolute inset-0 opacity-25
-                    bg-[radial-gradient(600px_220px_at_20%_-10%,#F4C84A33,transparent),
-                        radial-gradient(520px_200px_at_85%_110%,#43B88333,transparent)]" />
-    <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
-    <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
+      {/* Hero Content */}
+      <div className="relative z-10 container mx-auto px-4 pt-20 pb-16 text-center">
+        <Badge variant="secondary" className="mb-6 text-sm px-4 py-2">
+          Complete Real Estate Ecosystem
+        </Badge>
 
-    <div className="hidden-custom relative container mx-auto px-4 py-8">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="text-center group">
-            <div className="mx-auto mb-2 inline-flex items-center justify-center 
-                            h-9 w-9 rounded-xl
-                            bg-[linear-gradient(135deg,rgba(31,122,90,.22),rgba(244,200,74,.22))]
-                            text-[#F4C84A] group-hover:scale-105 transition-transform">
-              <stat.icon className="h-5 w-5" />
+        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+          Real Estate That Builds Futures
+        </h1>
+
+        <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
+          We provide a complete real estate ecosystem — from group investments to property leasing, 
+          mortgages, sales, resales, and rentals. Helping individuals and groups grow together through 
+          strategic opportunities.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+          <Button
+            variant="hero"
+            size="lg"
+            className="text-lg px-8 py-4"
+            onClick={() => navigate("/register")}
+          >
+            Start KYC Process
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="text-lg px-8 py-4"
+            onClick={() => navigate("/properties")}
+          >
+            Browse Properties
+          </Button>
+        </div>
+
+        {/* Real Estate Feature Grid */}
+        {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+          {features.map((f, i) => (
+            <div
+              key={i}
+              className="p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 
+                         hover:bg-white/20 transition-all duration-300"
+            >
+              <f.icon className="w-10 h-10 text-[#F4C84A] mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-white">{f.title}</h3>
+              <p className="text-white/70 text-sm">{f.desc}</p>
             </div>
-
-            <div className="text-2xl md:text-3xl font-bold
-                            bg-clip-text text-transparent
-                            bg-[linear-gradient(90deg,#FFE08C,#F4C84A)]">
-              {stat.value}
-            </div>
-
-            <div className="text-sm text-white/70">{stat.label}</div>
-          </div>
-        ))}
+          ))}
+        </div> */}
       </div>
-    </div>
-  </div>
-</section>
-
+    </section>
   );
 };

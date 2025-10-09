@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import API from "@/api/api";
+import { useParams, useNavigate } from "react-router-dom";
 
 import {
   Building2,
@@ -22,6 +23,12 @@ import {
   Loader2,
   Info,
 } from "lucide-react";
+
+interface BasicDetailsProps {
+  data: any;
+  onChange: (field: string, value: any) => void;
+  fe: (field: string) => string | undefined;
+}
 
 /* ---------------------------------- UI ---------------------------------- */
 function Toast({
@@ -235,6 +242,7 @@ const initialState: any = {
   project_name: "",
   builder_name: "",
   rera_id: "",
+  developed_by:"",
   description: "",
 
   country: "India",
@@ -343,6 +351,8 @@ const steps = [
 
 /* --------------------------------- Page --------------------------------- */
 export default function AdminPropertyWizardVertical() {
+  const { id } = useParams();
+const isEdit = Boolean(id);
   const [data, setData] = useState<any>(() => {
     const draft = localStorage.getItem("admin_prop_draft");
     if (!draft) return initialState;
@@ -365,16 +375,34 @@ export default function AdminPropertyWizardVertical() {
     localStorage.setItem("admin_prop_draft", JSON.stringify(rest));
   }, [data, stepIndex]);
 
+  // Fetch property details if editing
+useEffect(() => {
+  if (isEdit) {
+    (async () => {
+      try {
+        const res = await API.get(`/admin-properties/${id}`);
+        const prop = res.data?.data || res.data;
+        setData({ ...initialState, ...prop });
+      } catch (err) {
+        console.error("Failed to load property:", err);
+      }
+    })();
+  }
+}, [id]);
+
   const current = steps[stepIndex];
   const next = () => setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   const prev = () => setStepIndex((i) => Math.max(i - 1, 0));
   const onChange = (name: string, value: any) => setData((d: any) => ({ ...d, [name]: value }));
 
-  const toggleAmenity = (key: string) =>
-    setData((d: any) => {
-      const exists = d.amenities.includes(key);
-      return { ...d, amenities: exists ? d.amenities.filter((a: string) => a !== key) : [...d.amenities, key] };
-    });
+  const toggleAmenity = (a: string) => {
+  const current = Array.isArray(data.amenities) ? data.amenities : [];
+  const next = current.includes(a)
+    ? current.filter((x) => x !== a)
+    : [...current, a];
+
+  setData((prev: any) => ({ ...prev, amenities: next }));
+};
 
   const handleFiles = (name: string, files: FileList | null, limit = 8) => {
     const arr = Array.from(files || []);
@@ -493,106 +521,130 @@ if (key === "extra_json" && typeof val === "object" && val) {
 
 
   const submitForm = async () => {
-    setServerErrors({});
+  setServerErrors({});
 
-    const form = new FormData();
-    const payload = { ...data };
-    if (payload.service === "rent" && payload.expected_rent && !payload.price_actual) {
-      payload.price_actual = payload.expected_rent;
-    }
-    Object.entries(payload).forEach(([k, v]) => appendSmart(form, k, v));
+  const form = new FormData();
+  const payload = { ...data };
 
-    try {
-      setSubmitting(true);
-      const res = await API.post("/admin-properties", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+  // Auto-fill rent as price_actual if missing
+  if (payload.service === "rent" && payload.expected_rent && !payload.price_actual) {
+    payload.price_actual = payload.expected_rent;
+  }
 
-      setToast({ open: true, title: "Property saved", subtitle: `ID: ${res.data?.id}` });
+  // Build FormData using your existing appendSmart logic
+  Object.entries(payload).forEach(([k, v]) => appendSmart(form, k, v));
+
+  try {
+    setSubmitting(true);
+
+    // 🔹 Create vs Edit API logic
+    const res = isEdit
+      ? await API.post(`/admin-properties/${id}?_method=PUT`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+      : await API.post("/admin-properties", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+    // 🔹 Toast for success
+    setToast({
+      open: true,
+      title: isEdit ? "Property updated" : "Property saved",
+      subtitle: `ID: ${res.data?.id || id}`,
+    });
+
+    // Clear draft only when creating new
+    if (!isEdit) {
       localStorage.removeItem("admin_prop_draft");
       setData(initialState);
       setStepIndex(0);
-      setErrors({});
-      setServerErrors({});
-    } catch (err: any) {
-      const status = err?.response?.status;
-      const body = err?.response?.data;
-
-      if (status === 422 && body?.errors) {
-        setServerErrors(body.errors);
-        const firstKey = Object.keys(body.errors)[0];
-        const stepForField: Record<string, number> = {
-  service: 0,
-  property_type: 0,
-  title: 1,
-  description: 1,
-  city: 2,
-  address_line: 2,
-
-  // size/meta
-  size_sqft_text: 3,
-  bedrooms: 3,
-  bathrooms: 3,
-  balconies: 3,
-  parking_open: 3,
-  parking_covered: 3,
-  tower_count: 3,
-  total_units: 3,
-
-  // pricing
-  price_min: 4,
-  price_max: 4,
-  price_actual: 4,
-  expected_rent: 4,
-  mortgage_amount: 4,
-  interest_rate: 4,
-  mortgage_tenure_months: 4,
-  lease_duration_months: 4,
-
-  // legal/media docs
-  documents: 6,
-  brochure: 6,
-  site_plan: 6,
-  flat_plans: 6,
-
-  // media images
-  main_image: 7,
-  gallery: 7,
-
-  // nearby
-  nearby: 8,
-
-  // seo
-  meta_title: 9,
-  meta_description: 9,
-
-  // contact
-  owner_email: 10,
-  owner_phone: 10,
-  owner_name: 10,
-  listed_by: 10,
-  available_from: 10,
-  status: 10,
-};
-
-        if (firstKey in stepForField) setStepIndex(stepForField[firstKey]);
-
-        setToast({
-          open: true,
-          title: "Please correct the highlighted fields",
-          subtitle: `${Object.values(body.errors).flat().length} issues`,
-        });
-      } else {
-        setToast({
-          open: true,
-          title: "Submit failed",
-          subtitle: body?.message || `HTTP ${status || "ERR"}`,
-        });
-      }
-    } finally {
-      setSubmitting(false);
     }
-  };
+
+    // Reset errors
+    setErrors({});
+    setServerErrors({});
+
+  } catch (err: any) {
+    const status = err?.response?.status;
+    const body = err?.response?.data;
+
+    if (status === 422 && body?.errors) {
+      setServerErrors(body.errors);
+      const firstKey = Object.keys(body.errors)[0];
+
+      // 🔹 Keep your original step mapping for focus correction
+      const stepForField: Record<string, number> = {
+        service: 0,
+        property_type: 0,
+        title: 1,
+        description: 1,
+        city: 2,
+        address_line: 2,
+
+        // size/meta
+        size_sqft_text: 3,
+        bedrooms: 3,
+        bathrooms: 3,
+        balconies: 3,
+        parking_open: 3,
+        parking_covered: 3,
+        tower_count: 3,
+        total_units: 3,
+
+        // pricing
+        price_min: 4,
+        price_max: 4,
+        price_actual: 4,
+        expected_rent: 4,
+        mortgage_amount: 4,
+        interest_rate: 4,
+        mortgage_tenure_months: 4,
+        lease_duration_months: 4,
+
+        // legal/media docs
+        documents: 6,
+        brochure: 6,
+        site_plan: 6,
+        flat_plans: 6,
+
+        // media images
+        main_image: 7,
+        gallery: 7,
+
+        // nearby
+        nearby: 8,
+
+        // seo
+        meta_title: 9,
+        meta_description: 9,
+
+        // contact
+        owner_email: 10,
+        owner_phone: 10,
+        owner_name: 10,
+        listed_by: 10,
+        available_from: 10,
+        status: 10,
+      };
+
+      if (firstKey in stepForField) setStepIndex(stepForField[firstKey]);
+
+      setToast({
+        open: true,
+        title: "Please correct the highlighted fields",
+        subtitle: `${Object.values(body.errors).flat().length} issues`,
+      });
+    } else {
+      setToast({
+        open: true,
+        title: "Submit failed",
+        subtitle: body?.message || `HTTP ${status || "ERR"}`,
+      });
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const isResidential = ["apartment", "independent_house", "studio"].includes(data.property_type);
   const isCommercial = [
@@ -617,7 +669,9 @@ if (key === "extra_json" && typeof val === "object" && val) {
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-fuchsia-500 to-cyan-500" />
           <div className="p-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Create Property</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+  {isEdit ? "Edit Property" : "Create Property"}
+</h1>
             <p className="text-slate-600 mt-1">
               Fill details step by step. All extra fields are optional.
             </p>
@@ -832,25 +886,102 @@ function Classification({ data, onChange, fe }: any) {
 }
 
 function BasicDetails({ data, onChange, fe }: any) {
+  const [developers, setDevelopers] = useState<any[]>([]);
+  const [loadingDevelopers, setLoadingDevelopers] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchDevelopers = async () => {
+      try {
+        setLoadingDevelopers(true);
+
+        const res = await API.get("/developers"); // uses API.ts instance
+        if (res.data.ok) {
+          setDevelopers(res.data.data); // your backend returns { ok: true, data: [...] }
+        } else {
+          console.error("Failed to fetch developers:", res.data);
+          setDevelopers([]);
+        }
+      } catch (err) {
+        console.error("Error fetching developers:", err);
+        setDevelopers([]);
+      } finally {
+        setLoadingDevelopers(false);
+      }
+    };
+
+    fetchDevelopers();
+  }, []);
+
   return (
     <div>
-      <SectionTitle icon={Home} title="Basic Details" subtitle="Title, project & a short description." />
+      <SectionTitle
+        icon={Home}
+        title="Basic Details"
+        subtitle="Title, project & a short description."
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Field label="Listing Title" error={fe("title")} required>
-          <TextInput value={data.title} onChange={(v) => onChange("title", v)} placeholder="e.g., 3BHK Apartment in Sector 62" />
+          <TextInput
+            value={data.title}
+            onChange={(v) => onChange("title", v)}
+            placeholder="e.g., 3BHK Apartment in Sector 62"
+          />
         </Field>
+
         <Field label="RERA ID">
-          <TextInput value={data.rera_id} onChange={(v) => onChange("rera_id", v)} placeholder="Optional" />
+          <TextInput
+            value={data.rera_id}
+            onChange={(v) => onChange("rera_id", v)}
+            placeholder="Optional"
+          />
         </Field>
+
         <Field label="Project Name">
-          <TextInput value={data.project_name} onChange={(v) => onChange("project_name", v)} placeholder="Optional" />
+          <TextInput
+            value={data.project_name}
+            onChange={(v) => onChange("project_name", v)}
+            placeholder="Optional"
+          />
         </Field>
+
         <Field label="Builder Name">
-          <TextInput value={data.builder_name} onChange={(v) => onChange("builder_name", v)} placeholder="Optional" />
+          <TextInput
+            value={data.builder_name}
+            onChange={(v) => onChange("builder_name", v)}
+            placeholder="Optional"
+          />
         </Field>
+
+        {/* ✅ DEVELOPED BY — fetched from DB */}
+        <Field label="Developed By" error={fe("developed_by")}>
+  {loadingDevelopers ? (
+    <div className="text-sm text-slate-500">Loading developers...</div>
+  ) : (
+    <select
+      value={data.developed_by || ""}
+      onChange={(e) => onChange("developed_by", e.target.value)} // stores name now
+      className="border p-2 rounded w-full"
+    >
+      <option value="">Select Developer</option>
+      {developers.map((dev: any) => (
+        <option key={dev.id} value={dev.name}>
+          {dev.name}
+        </option>
+      ))}
+    </select>
+  )}
+</Field>
+
+
         <div className="md:col-span-2">
           <Field label="Short Description" error={fe("description")} required>
-            <Textarea value={data.description} onChange={(v) => onChange("description", v)} placeholder="Key highlights, nearby landmarks, connectivity, etc." rows={5} />
+            <Textarea
+              value={data.description}
+              onChange={(v) => onChange("description", v)}
+              placeholder="Key highlights, nearby landmarks, connectivity, etc."
+              rows={5}
+            />
           </Field>
         </div>
       </div>
@@ -1181,16 +1312,23 @@ function PricingTenure({ data, onChange, fe }: any) {
 }
 
 function Amenities({ data, toggleAmenity }: any) {
+  // ✅ make sure amenities is always an array
+  const amenitiesSafe = Array.isArray(data.amenities) ? data.amenities : [];
+
   return (
     <div>
-      <SectionTitle icon={CheckCircle2} title="Amenities & Features" subtitle="Select what applies (single list, no duplicates)." />
+      <SectionTitle
+        icon={CheckCircle2}
+        title="Amenities & Features"
+        subtitle="Select what applies (single list, no duplicates)."
+      />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {AMENITIES_ALL.map((a) => (
           <button
             key={a}
             onClick={() => toggleAmenity(a)}
             className={`rounded-full border px-4 py-2 text-sm ${
-              data.amenities.includes(a)
+              amenitiesSafe.includes(a)
                 ? "border-emerald-600 bg-emerald-600 text-white"
                 : "border-slate-200 bg-white hover:border-slate-300"
             }`}
@@ -1488,6 +1626,7 @@ function ReviewSubmit({ data }: any) {
             <Row label="Type">{data.property_type}</Row>
             <Row label="Title">{data.title}</Row>
             <Row label="RERA ID">{data.rera_id}</Row>
+            <Row label="Developed By">{data.developed_by}</Row>
             <Row label="Project">{data.project_name}</Row>
             <Row label="Builder">{data.builder_name}</Row>
           </div>

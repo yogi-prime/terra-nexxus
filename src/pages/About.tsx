@@ -21,7 +21,7 @@ const About = () => {
         <GrowthImpact />
         <ValueProposition />
         <HowItWorksAbout />
-        <Leadership />
+        {/* <Leadership /> */}
         <PressRecognition />
         <CommunityTestimonials />
         <ComplianceSecurity />
