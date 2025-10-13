@@ -580,6 +580,7 @@ if (key === "extra_json" && typeof val === "object" && val) {
         description: 1,
         city: 2,
         address_line: 2,
+        developed_by: 1,
 
         // size/meta
         size_sqft_text: 3,
@@ -954,13 +955,13 @@ function BasicDetails({ data, onChange, fe }: any) {
         </Field>
 
         {/* ✅ DEVELOPED BY — fetched from DB */}
-        <Field label="Developed By" error={fe("developed_by")}>
+<Field label="Developed By" error={fe("developed_by")}>
   {loadingDevelopers ? (
     <div className="text-sm text-slate-500">Loading developers...</div>
   ) : (
     <select
       value={data.developed_by || ""}
-      onChange={(e) => onChange("developed_by", e.target.value)} // stores name now
+      onChange={(e) => onChange("developed_by", e.target.value)} // stores name string
       className="border p-2 rounded w-full"
     >
       <option value="">Select Developer</option>
@@ -972,7 +973,6 @@ function BasicDetails({ data, onChange, fe }: any) {
     </select>
   )}
 </Field>
-
 
         <div className="md:col-span-2">
           <Field label="Short Description" error={fe("description")} required>

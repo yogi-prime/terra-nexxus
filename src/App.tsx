@@ -51,8 +51,8 @@ const App = () => (
           <Route path="/investor/:id" element={<InvestorDashboard />} />
           <Route path="/marketplace" element={<MarketPlace />} />
           <Route path="/marketplace/property/:id" element={<MarketplacePropertyDetails />} />
-          <Route path="/admin/add-developer" element={<AddDeveloperForm />} />
-          <Route path="/admin/edit-developer/:id" element={<AddDeveloperForm />} />
+          <Route path="/admin/add-developer" element={<ProtectedRoute allowedRoles={["admin"]}><AddDeveloperForm /></ProtectedRoute>} />
+          <Route path="/admin/edit-developer/:id" element={<ProtectedRoute allowedRoles={["admin"]}><AddDeveloperForm /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

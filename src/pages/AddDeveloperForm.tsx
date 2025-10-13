@@ -10,6 +10,8 @@ interface DeveloperForm {
   name: string;
   logo: File | null;
   logoPreview: string | null;
+  bannerImage: File | null;
+  bannerPreview: string | null;
   yearEstablished: string;
   totalProjects: string;
   liveProjects: string;
@@ -22,6 +24,7 @@ interface DeveloperForm {
 
 const projectTypes = ["Residential", "Commercial", "Mixed", "Sustainable"];
 const BASE_URL = API.defaults.baseURL.replace("/api", "");
+
 const AddDeveloperForm = () => {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
@@ -32,6 +35,8 @@ const AddDeveloperForm = () => {
     name: "",
     logo: null,
     logoPreview: null,
+    bannerImage: null,
+    bannerPreview: null,
     yearEstablished: "",
     totalProjects: "",
     liveProjects: "",
@@ -41,42 +46,45 @@ const AddDeveloperForm = () => {
     contactEmail: "",
     contactPhone: "",
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
 
   // Fetch existing developer data if editing
   useEffect(() => {
-  if (!isEdit) return;
+    if (!isEdit) return;
 
-  const fetchDeveloper = async () => {
-    setFetching(true);
-    try {
-      const res = await API.get(`/developers/${id}`);
-      const data = res.data.developer; // <-- FIXED
-      setDeveloper({
-  name: data.name || "",
-  logo: null,
-  logoPreview: data.logo ? `${BASE_URL}/storage/${data.logo}` : null,
-  yearEstablished: data.year_established || "",
-  totalProjects: data.total_projects?.toString() || "",
-  liveProjects: data.live_projects?.toString() || "",
-  rating: data.rating || 0,
-  categories: data.categories || [],
-  portfolioLink: data.portfolio_link || "",
-  contactEmail: data.contact_email || "",
-  contactPhone: data.contact_phone || "",
-});
-    } catch (err: any) {
-      toast({ variant: "destructive", description: "Failed to fetch developer" });
-    } finally {
-      setFetching(false);
-    }
-  };
+    const fetchDeveloper = async () => {
+      setFetching(true);
+      try {
+        const res = await API.get(`/developers/${id}`);
+        const data = res.data.developer;
+        setDeveloper({
+          name: data.name || "",
+          logo: null,
+          logoPreview: data.logo ? `${BASE_URL}/storage/${data.logo}` : null,
+          bannerImage: null,
+          bannerPreview: data.banner_image ? `${BASE_URL}/storage/${data.banner_image}` : null,
+          yearEstablished: data.year_established || "",
+          totalProjects: data.total_projects?.toString() || "",
+          liveProjects: data.live_projects?.toString() || "",
+          rating: data.rating || 0,
+          categories: data.categories || [],
+          portfolioLink: data.portfolio_link || "",
+          contactEmail: data.contact_email || "",
+          contactPhone: data.contact_phone || "",
+        });
+      } catch (err: any) {
+        toast({ variant: "destructive", description: "Failed to fetch developer" });
+      } finally {
+        setFetching(false);
+      }
+    };
 
-  fetchDeveloper();
-}, [id]);
+    fetchDeveloper();
+  }, [id]);
 
-
+  // Input handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setDeveloper({ ...developer, [name]: value });
@@ -85,11 +93,14 @@ const AddDeveloperForm = () => {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setDeveloper({
-        ...developer,
-        logo: file,
-        logoPreview: URL.createObjectURL(file),
-      });
+      setDeveloper({ ...developer, logo: file, logoPreview: URL.createObjectURL(file) });
+    }
+  };
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setDeveloper({ ...developer, bannerImage: file, bannerPreview: URL.createObjectURL(file) });
     }
   };
 
@@ -102,82 +113,68 @@ const AddDeveloperForm = () => {
     setDeveloper({ ...developer, rating: star });
   };
 
+  // Submit handler
   const submitDeveloper = async () => {
-  // Check required fields
-  if (!developer.name || developer.rating === 0) {
-    toast({ variant: "destructive", description: "Please fill required fields" });
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    const formData = new FormData();
-
-    // Required fields
-    formData.append("name", developer.name);
-    formData.append("rating", developer.rating.toString());
-
-    // Optional fields (send empty string if not provided)
-    formData.append("year_established", developer.yearEstablished || "");
-    formData.append(
-      "total_projects",
-      developer.totalProjects ? Number(developer.totalProjects).toString() : ""
-    );
-    formData.append(
-      "live_projects",
-      developer.liveProjects ? Number(developer.liveProjects).toString() : ""
-    );
-    formData.append("portfolio_link", developer.portfolioLink || "");
-    formData.append("contact_email", developer.contactEmail || "");
-    formData.append("contact_phone", developer.contactPhone || "");
-
-    // Categories array
-    if (developer.categories.length > 0) {
-      developer.categories.forEach((cat) => formData.append("categories[]", cat));
+    if (!developer.name || developer.rating === 0) {
+      toast({ variant: "destructive", description: "Please fill required fields" });
+      return;
     }
 
-    // Logo (only if changed)
-    if (developer.logo) {
-      formData.append("logo", developer.logo);
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", developer.name);
+      formData.append("rating", developer.rating.toString());
+      formData.append("year_established", developer.yearEstablished || "");
+      formData.append(
+        "total_projects",
+        developer.totalProjects ? Number(developer.totalProjects).toString() : ""
+      );
+      formData.append(
+        "live_projects",
+        developer.liveProjects ? Number(developer.liveProjects).toString() : ""
+      );
+      formData.append("portfolio_link", developer.portfolioLink || "");
+      formData.append("contact_email", developer.contactEmail || "");
+      formData.append("contact_phone", developer.contactPhone || "");
+
+      // Categories
+      if (developer.categories.length > 0) {
+        developer.categories.forEach((cat) => formData.append("categories[]", cat));
+      }
+
+      // Logo & Banner
+      if (developer.logo) formData.append("logo", developer.logo);
+      if (developer.bannerImage) formData.append("banner_image", developer.bannerImage);
+
+      const res = isEdit
+        ? await API.post(`/developers/${id}?_method=PUT`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+        : await API.post("/developers", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+
+      if (res.status === 201 || res.status === 200) {
+        toast({ description: `Developer ${isEdit ? "updated" : "added"} successfully` });
+        navigate("/admin/dashboard");
+      } else {
+        toast({ variant: "destructive", description: res.data.message || "Failed to submit" });
+      }
+    } catch (err: any) {
+      console.log("Developer submit error:", err.response?.data);
+      const message =
+        err.response?.data?.message ||
+        (err.response?.data?.errors
+          ? Object.values(err.response.data.errors)
+              .flat()
+              .join(", ")
+          : "Network error");
+      toast({ variant: "destructive", description: message });
+    } finally {
+      setIsLoading(false);
     }
-
-    // Send request
-    const res = isEdit
-      ? await API.post(`/developers/${id}?_method=PUT`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        })
-      : await API.post("/developers", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-    // Success
-    if (res.status === 201 || res.status === 200) {
-      toast({
-        description: `Developer ${isEdit ? "updated" : "added"} successfully`,
-      });
-      navigate("/admin/dashboard");
-    } else {
-      toast({
-        variant: "destructive",
-        description: res.data.message || "Failed to submit",
-      });
-    }
-  } catch (err: any) {
-    console.log("Developer submit error:", err.response?.data); // Full Laravel validation errors
-    const message =
-      err.response?.data?.message ||
-      (err.response?.data?.errors
-        ? Object.values(err.response.data.errors)
-            .flat()
-            .join(", ")
-        : "Network error");
-    toast({ variant: "destructive", description: message });
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   if (fetching) return <div className="p-6">Loading developer data...</div>;
 
@@ -191,12 +188,9 @@ const AddDeveloperForm = () => {
             <h2 className="text-3xl font-bold text-gray-900">
               {isEdit ? "Edit Developer Group" : "Add Developer Group"}
             </h2>
-            <p className="text-gray-500 mt-1">
-              Fill all details carefully. Fields marked * are mandatory.
-            </p>
+            <p className="text-gray-500 mt-1">Fill all details carefully. Fields marked * are mandatory.</p>
           </div>
 
-          {/* Form */}
           <div className="p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Name */}
@@ -215,17 +209,25 @@ const AddDeveloperForm = () => {
               {/* Logo */}
               <div>
                 <label className="font-medium mb-2 block text-gray-700">Logo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  className="block text-gray-600"
-                />
+                <input type="file" accept="image/*" onChange={handleLogoChange} className="block text-gray-600" />
                 {developer.logoPreview && (
                   <img
                     src={developer.logoPreview}
                     alt="Logo Preview"
                     className="mt-3 w-28 h-28 object-cover rounded-lg border"
+                  />
+                )}
+              </div>
+
+              {/* Banner Image */}
+              <div>
+                <label className="font-medium mb-2 block text-gray-700">Banner Image</label>
+                <input type="file" accept="image/*" onChange={handleBannerChange} className="block text-gray-600" />
+                {developer.bannerPreview && (
+                  <img
+                    src={developer.bannerPreview}
+                    alt="Banner Preview"
+                    className="mt-3 w-full h-40 object-cover rounded-lg border"
                   />
                 )}
               </div>
@@ -270,22 +272,20 @@ const AddDeveloperForm = () => {
               </div>
 
               {/* Rating */}
-              <div>
-                <label className="font-medium mb-2 block text-gray-700">Rating *</label>
-                <div className="flex items-center space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <FaStar
-                      key={star}
-                      size={24}
-                      className={`cursor-pointer ${
-                        star <= developer.rating ? "text-yellow-400" : "text-gray-300"
-                      }`}
-                      onClick={() => handleRatingClick(star)}
-                    />
-                  ))}
-                  <span className="ml-2 text-gray-600">{developer.rating}.0</span>
-                </div>
-              </div>
+<div>
+  <label className="font-medium mb-2 block text-gray-700">Rating *</label>
+  <input
+    type="number"
+    name="rating"
+    value={developer.rating}
+    step="0.1"
+    min="0"
+    max="5"
+    onChange={(e) => setDeveloper({ ...developer, rating: parseFloat(e.target.value) })}
+    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+  />
+</div>
+
 
               {/* Categories */}
               <div>

@@ -263,6 +263,7 @@ const AdminDashboard = () => {
                     <tr>
                       {[
                         "Title",
+                        "Developed By",
                         "City",
                         "Address",
                         "Service",
@@ -283,6 +284,7 @@ const AdminDashboard = () => {
                     {properties.map((prop: any) => (
                       <tr key={prop.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4">{prop.title}</td>
+                        <td className="px-6 py-4">{prop.developed_by}</td>
                         <td className="px-6 py-4">{prop.city}</td>
                         <td className="px-6 py-4">{prop.address_line}</td>
                         <td className="px-6 py-4 capitalize">{prop.service}</td>
